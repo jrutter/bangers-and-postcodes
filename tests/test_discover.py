@@ -4,7 +4,6 @@ from bangers_postcodes.discover import (
     locality_from_mb,
     search_plan,
 )
-from bangers_postcodes.stats import build_stats
 
 PUTNEY = "79e9cadb-c71e-40fc-bf78-950ef290517e"
 BARNES = "2a16c206-6158-4751-95dc-7a799d250e2c"
@@ -236,8 +235,13 @@ def test_borough_artists_do_not_inflate_postcode_counts():
             }
         ],
     }
-    stats = build_stats([artist, precise])
-    sw18 = next(row for row in stats["by_postcode"] if row["postcode"] == "SW18")
-    assert sw18["artist_count"] == 1
-    assert stats["borough_precision_count"] == 1
-    assert stats["place_precision_count"] == 1
+    def counted_in(postcode: str, record: dict) -> bool:
+        return any(
+            place.get("precision") == "place" and postcode in (place.get("postcodes") or [])
+            for place in record["locality"]
+        )
+
+    both = [artist, precise]
+    assert sum(counted_in("SW18", record) for record in both) == 1
+    assert sum(any(place.get("precision") == "borough" for place in record["locality"]) for record in both) == 1
+    assert sum(any(place.get("precision") == "place" for place in record["locality"]) for record in both) == 1

@@ -2,72 +2,68 @@
 
 The best new music from your ends. Pick a London postcode and get a Spotify playlist of artists from right round the corner, plus stats on who's local, who's growing, and which part of town is turning out the tunes. Starting in southwest London, from Barnes to Wimbledon.
 
-Spotify does not know where an artist is from. This project decides who counts as local from public data, records the source of each claim, then matches those artists on Spotify.
+Spotify does not know where an artist is from. A Python script decides who counts as local from MusicBrainz and Wikidata, records the source of each claim, and writes `data/artists.json`. The Next.js app reads that file. It matches artists on Spotify from the server, and a logged-in listener can save a playlist to their account.
 
 Places in v1: Barnes (SW13), Putney and Roehampton (SW15), Richmond, Kew (TW9), Ham and Petersham (TW10), Kingston upon Thames and Norbiton (KT1/KT2), Wimbledon (SW19), Mortlake and East Sheen (SW14), Fulham (SW6), Southfields (SW18). Borough-level links for Wandsworth, Kingston upon Thames, and Richmond upon Thames are kept separate, because those areas are wider than one postcode.
 
-## Setup
+## Web app
 
-Python 3.11 or newer.
+Node.js 20 or newer.
+
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Open http://127.0.0.1:3000. The dev server uses port 3000 so the default redirect URI matches.
+
+```
+SPOTIFY_CLIENT_ID=...
+SPOTIFY_CLIENT_SECRET=...
+SPOTIFY_REDIRECT_URI=http://127.0.0.1:3000/api/auth/callback
+```
+
+`SPOTIFY_REDIRECT_URI` is optional locally. If it is unset, the app uses `http://127.0.0.1:3000/api/auth/callback`.
+
+In the [Spotify developer dashboard](https://developer.spotify.com/dashboard), the app's redirect URIs must include that exact local address **and** the production https URL, for example `https://your-app.vercel.app/api/auth/callback`. Spotify rejects a login whose redirect URI is not on that list. Playlist login asks for `playlist-modify-private` and `playlist-modify-public`. New playlists are private unless you tick public.
+
+Pages:
+
+- `/` lists the southwest London postcodes and areas, with catalogue counts.
+- `/postcode/sw15` and `/area/putney` list local artists, the source of each locality claim, Spotify matches, and stats. Followers and popularity show as n/a when Spotify omits them.
+- `/playlist` is where you log in with Spotify and create the playlist.
+
+Artist search and track lookup use the client-credentials flow and stay on the server. The client secret is never sent to the browser. Without credentials, the artist lists still render and Spotify fields stay empty.
+
+## Deploy on Vercel
+
+1. Import this repository. The framework preset is Next.js. The build command is `npm run build`.
+2. Add environment variables: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, and `SPOTIFY_REDIRECT_URI`.
+3. Set `SPOTIFY_REDIRECT_URI` to `https://<your-domain>/api/auth/callback`.
+4. Add that https URI, and `http://127.0.0.1:3000/api/auth/callback`, in the Spotify dashboard.
+5. Redeploy after the variables are saved. `npm run build` does not call Spotify.
+
+## Discovery script
+
+Python 3.11 or newer. This is only needed to refresh the artist list. The committed `data/artists.json` is a real run.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-cp .env.example .env
-```
-
-Put your Spotify app credentials in `.env`. Do not commit that file.
-
-```
-SPOTIFY_CLIENT_ID=...
-SPOTIFY_CLIENT_SECRET=...
-SPOTIFY_REDIRECT_URI=http://127.0.0.1:8888/callback
-```
-
-The redirect URI has to stay `http://127.0.0.1:8888/callback`. That is the URI registered on the Spotify app. Playlist login listens on that exact address.
-
-## Commands
-
-Discovery only. This queries MusicBrainz and Wikidata and writes the artist list. The copy in `data/artists.json` is a real run of that command.
-
-```bash
 bangers discover --output data/artists.json
 ```
 
-Discovery, Spotify matching, and stats in one go. Uses the client-credentials flow (no browser). Needs `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`. Writes `data/run.json`.
+## Tests
 
 ```bash
-bangers run --output data/run.json
-```
-
-To match the artists already saved in `data/artists.json` without querying MusicBrainz again:
-
-```bash
-bangers run --artists data/artists.json --output data/run.json
-```
-
-Log in and create a playlist from that file. This opens a browser for the Authorization Code flow, with scopes `playlist-modify-private` and `playlist-modify-public`. The playlist is private unless you pass `--public`.
-
-```bash
-bangers playlist --input data/run.json
-```
-
-Stats page, from the discovery file or from `data/run.json` if that file exists:
-
-```bash
-bangers serve --port 8741
-```
-
-Then open http://127.0.0.1:8741
-
-Tests:
-
-```bash
+npm test
+npm run build
 pytest
 ```
 
-Spotify calls in the tests use mocked HTTP. A live Spotify run needs credentials, which are not stored in this repo.
+Spotify tests mock `fetch`. They do not use live credentials. Pytest covers MusicBrainz and Wikidata discovery with mocked HTTP.
 
 ## How locality is decided
 
@@ -84,12 +80,10 @@ Spotify matching keeps an artist only when the Spotify name matches after case, 
 
 ## Layout
 
-- `src/bangers_postcodes/areas.py` — postcodes and the MusicBrainz / Wikidata ids behind them
-- `src/bangers_postcodes/discover.py` — locality and the musician filter
-- `src/bangers_postcodes/spotify.py` — client credentials, matching, top tracks
-- `src/bangers_postcodes/playlist.py` — login on port 8888 and playlist creation
-- `src/bangers_postcodes/stats.py` — counts per place and postcode, top artists
+- `app/` — Next.js App Router pages and Spotify login routes
+- `lib/` — catalogue, matching, stats, and playlist rules
 - `data/artists.json` — committed discovery output
+- `src/bangers_postcodes/` — MusicBrainz and Wikidata discovery
 
 ## Limitations
 
@@ -101,3 +95,4 @@ Spotify matching keeps an artist only when the Spotify name matches after case, 
 - A MusicBrainz comment that calls someone an author, actor, poet, or similar keeps them out, unless that comment also describes them as a musician. Wikidata items with no English name are skipped.
 - Spotify has no hometown field, so a match is a name match, not a biography check.
 - Popularity and follower counts depend on what the Spotify app is allowed to see.
+- Creating a playlist for all of southwest London matches the whole catalogue on Spotify in that request, so it can take a while.
