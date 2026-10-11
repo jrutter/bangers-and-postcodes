@@ -14,8 +14,16 @@ export const metadata: Metadata = {
 
 export const maxDuration = 60
 
-export default async function MapPage(props: PageProps<"/map">) {
-  const query = await props.searchParams
+export default function MapPage(props: PageProps<"/map">) {
+  return (
+    <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the map…</p>}>
+      <MapBody searchParams={props.searchParams} />
+    </Suspense>
+  )
+}
+
+async function MapBody({ searchParams }: { searchParams: PageProps<"/map">["searchParams"] }) {
+  const query = await searchParams
   const era = parseEra(firstQuery(query.era))
   const region = regionById(firstQuery(query.region))
   const returnTo = withEra(region ? `/map?region=${region.id}` : "/map", era)

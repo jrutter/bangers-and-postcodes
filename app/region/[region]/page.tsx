@@ -37,7 +37,23 @@ export default async function RegionPage(props: PageProps<"/region/[region]">) {
   const { region: regionId } = await props.params
   const region = regionById(regionId)
   if (!region) notFound()
-  const query = await props.searchParams
+  return (
+    <Suspense fallback={<p className="text-sm text-muted-foreground">Loading {region.name}…</p>}>
+      <RegionBody regionId={region.id} searchParams={props.searchParams} />
+    </Suspense>
+  )
+}
+
+async function RegionBody({
+  regionId,
+  searchParams,
+}: {
+  regionId: string
+  searchParams: PageProps<"/region/[region]">["searchParams"]
+}) {
+  const region = regionById(regionId)
+  if (!region) notFound()
+  const query = await searchParams
   const era = parseEra(firstQuery(query.era))
   const localArtists = filterArtists(artistsInRegion(artists(), region.id), era)
   const shown = showcaseArtists(localArtists, 8)

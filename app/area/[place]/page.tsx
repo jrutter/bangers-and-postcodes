@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { Suspense } from "react"
 
 import { LocalityView, postcodeLinks } from "@/components/locality-view"
 import { artistsInPlace, placeById, places } from "@/lib/catalogue"
@@ -23,7 +24,23 @@ export default async function AreaPage(props: PageProps<"/area/[place]">) {
   const { place: placeId } = await props.params
   const place = placeById(placeId)
   if (!place) notFound()
-  const query = await props.searchParams
+  return (
+    <Suspense fallback={<p className="text-sm text-muted-foreground">Loading {place.name}…</p>}>
+      <AreaBody placeId={place.id} searchParams={props.searchParams} />
+    </Suspense>
+  )
+}
+
+async function AreaBody({
+  placeId,
+  searchParams,
+}: {
+  placeId: string
+  searchParams: PageProps<"/area/[place]">["searchParams"]
+}) {
+  const place = placeById(placeId)
+  if (!place) notFound()
+  const query = await searchParams
   const artists = artistsInPlace(place.id)
   const page = Number(firstQuery(query.page) || "1")
   const codes = placeGigPostcodes(place.id)

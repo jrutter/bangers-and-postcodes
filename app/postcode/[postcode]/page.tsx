@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { Suspense } from "react"
 
 import { LocalityView, placeLinks } from "@/components/locality-view"
 import { areasInPostcode, artistsInPostcode, knownPostcode, postcodes } from "@/lib/catalogue"
@@ -24,7 +25,21 @@ export default async function PostcodePage(props: PageProps<"/postcode/[postcode
   const { postcode } = await props.params
   const code = postcode.toUpperCase()
   if (!knownPostcode(code)) notFound()
-  const query = await props.searchParams
+  return (
+    <Suspense fallback={<p className="text-sm text-muted-foreground">Loading {code}…</p>}>
+      <PostcodeBody code={code} searchParams={props.searchParams} />
+    </Suspense>
+  )
+}
+
+async function PostcodeBody({
+  code,
+  searchParams,
+}: {
+  code: string
+  searchParams: PageProps<"/postcode/[postcode]">["searchParams"]
+}) {
+  const query = await searchParams
   const areas = areasInPostcode(code)
   const artists = artistsInPostcode(code)
   const names = areas.map((place) => place.name).join(", ")
