@@ -1,5 +1,6 @@
 from bangers_postcodes.discover import (
     assemble_artists,
+    dedupe_artists,
     has_musical_release,
     locality_from_mb,
     search_plan,
@@ -245,3 +246,99 @@ def test_borough_artists_do_not_inflate_postcode_counts():
     assert sum(counted_in("SW18", record) for record in both) == 1
     assert sum(any(place.get("precision") == "borough" for place in record["locality"]) for record in both) == 1
     assert sum(any(place.get("precision") == "place" for place in record["locality"]) for record in both) == 1
+
+
+def test_dedupe_merges_the_same_wikidata_artist_and_keeps_both_places():
+    first = {
+        "mbid": "one",
+        "wikidata_qid": "Q1",
+        "name": "Example",
+        "sort_name": "Example",
+        "type": "Person",
+        "disambiguation": None,
+        "tags": ["jazz"],
+        "life_span": {"begin": "1960", "end": None, "ended": False, "source": "musicbrainz"},
+        "locality": [
+            {
+                "place_id": "putney",
+                "place_name": "Putney",
+                "postcodes": ["SW15"],
+                "precision": "place",
+                "claims": [{"source": "musicbrainz", "field": "begin-area"}],
+            }
+        ],
+    }
+    second = {
+        "mbid": "two",
+        "wikidata_qid": "Q1",
+        "name": "Example",
+        "sort_name": "Example",
+        "type": "Person",
+        "disambiguation": None,
+        "tags": ["soul"],
+        "life_span": {"begin": None, "end": "2020", "ended": True, "source": "wikidata"},
+        "locality": [
+            {
+                "place_id": "fulham",
+                "place_name": "Fulham",
+                "postcodes": ["SW6"],
+                "precision": "place",
+                "claims": [{"source": "wikidata", "field": "place of birth"}],
+            }
+        ],
+    }
+    merged = dedupe_artists([first, second])
+    assert len(merged) == 1
+    assert {place["place_id"] for place in merged[0]["locality"]} == {"putney", "fulham"}
+    assert merged[0]["life_span"]["begin"] == "1960"
+    assert merged[0]["life_span"]["end"] == "2020"
+    assert "soul" in merged[0]["tags"]
+
+
+def test_dedupe_keeps_the_wikidata_name_when_a_label_alias_sorts_first():
+    imprint = {
+        "mbid": "label",
+        "wikidata_qid": "Q959655",
+        "_wikidata_name": "Four Tet",
+        "name": "4T Recordings",
+        "sort_name": "4T Recordings",
+        "type": "Person",
+        "tags": [],
+        "life_span": {"begin": "1977-09", "end": None, "ended": False, "source": "musicbrainz"},
+        "locality": [
+            {
+                "place_id": "putney",
+                "place_name": "Putney",
+                "postcodes": ["SW15"],
+                "precision": "place",
+                "claims": [
+                    {"source": "musicbrainz", "field": "begin-area"},
+                    {"source": "wikidata", "field": "place of birth"},
+                ],
+            }
+        ],
+    }
+    artist = {
+        "mbid": "3bcff06f-675a-451f-9075-99e8657047e8",
+        "wikidata_qid": "Q959655",
+        "_wikidata_name": "Four Tet",
+        "name": "Four Tet",
+        "sort_name": "Four Tet",
+        "type": "Person",
+        "tags": ["electronic", "idm"],
+        "life_span": {"begin": "1977-09", "end": None, "ended": False, "source": "musicbrainz"},
+        "locality": [
+            {
+                "place_id": "putney",
+                "place_name": "Putney",
+                "postcodes": ["SW15"],
+                "precision": "place",
+                "claims": [{"source": "musicbrainz", "field": "begin-area"}],
+            }
+        ],
+    }
+    merged = dedupe_artists([imprint, artist])
+    assert len(merged) == 1
+    assert merged[0]["name"] == "Four Tet"
+    assert merged[0]["mbid"] == "3bcff06f-675a-451f-9075-99e8657047e8"
+    assert "electronic" in merged[0]["tags"]

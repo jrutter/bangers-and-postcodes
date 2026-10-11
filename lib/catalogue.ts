@@ -1,5 +1,6 @@
 import catalogueJson from "@/data/artists.json"
 
+import { londonPostcodes } from "@/lib/districts"
 import type { ArtistRecord, Catalogue, PlaceRecord } from "@/lib/types"
 import { venueById } from "@/lib/venues"
 import {
@@ -23,7 +24,11 @@ export function artists(): ArtistRecord[] {
 }
 
 export function postcodes(): string[] {
-  return postcodeList(catalogue.places)
+  const found = londonPostcodes()
+  for (const postcode of postcodeList(catalogue.places)) {
+    if (!found.includes(postcode)) found.push(postcode)
+  }
+  return found
 }
 
 export function placeById(id: string): PlaceRecord | undefined {
@@ -112,7 +117,7 @@ export function scopeValue(scope: Scope): string {
 }
 
 export function scopeLabel(scope: Scope): string {
-  if (scope.kind === "all") return "SW London"
+  if (scope.kind === "all") return "London"
   if (scope.kind === "postcode") return scope.postcode
   if (scope.kind === "area") return placeById(scope.placeId)?.name ?? scope.placeId
   if (scope.kind === "venue") return venueById(scope.venueId)?.name ?? "Venue"

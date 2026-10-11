@@ -5,7 +5,7 @@ import { Suspense } from "react"
 
 import { GigSection } from "@/components/gig-section"
 import { areaPath, knownPostcode, placeById, postcodePath } from "@/lib/catalogue"
-import { venueById, venues } from "@/lib/venues"
+import { venueById, venueTypeLabel, venues } from "@/lib/venues"
 
 export const maxDuration = 60
 
@@ -26,10 +26,13 @@ export default async function VenuePage(props: PageProps<"/venue/[venue]">) {
   return (
     <article className="space-y-10">
       <header className="max-w-3xl space-y-4">
-        <p className="text-sm font-medium tracking-[0.16em] text-info uppercase">{venue.postcode}</p>
+        <p className="text-sm font-medium tracking-[0.16em] text-info uppercase">
+          {[venueTypeLabel(venue.type), venue.grassroots ? "Grassroots" : null, venue.borough].filter(Boolean).join(" · ")}
+        </p>
         <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-5xl">{venue.name}</h1>
         <p className="text-base leading-7 text-muted-foreground">
-          {venue.address}, {venue.postcode}. {venue.note}
+          {[venue.address, venue.postcode].filter(Boolean).join(", ")}. {venue.note}
+          {venue.capacity ? ` Capacity listed as ${venue.capacity.toLocaleString("en-GB")}.` : ""}
         </p>
         <div className="flex flex-wrap gap-3 text-sm">
           {venue.postcodes.map((code) =>
@@ -41,11 +44,13 @@ export default async function VenuePage(props: PageProps<"/venue/[venue]">) {
               <span key={code}>{code}</span>
             ),
           )}
-          {venue.areaIds.map((areaId) => (
-            <Link key={areaId} href={areaPath(areaId)} className="underline decoration-border underline-offset-4">
-              {placeById(areaId)?.name ?? areaId}
-            </Link>
-          ))}
+          {venue.areaIds.map((areaId) =>
+            placeById(areaId) ? (
+              <Link key={areaId} href={areaPath(areaId)} className="underline decoration-border underline-offset-4">
+                {placeById(areaId)?.name}
+              </Link>
+            ) : null,
+          )}
           {venue.website ? (
             <a className="underline decoration-border underline-offset-4" href={venue.website}>
               Website

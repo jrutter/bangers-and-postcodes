@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 
 import { LocalityView, postcodeLinks } from "@/components/locality-view"
 import { artistsInPlace, placeById, places } from "@/lib/catalogue"
+import { parseEra } from "@/lib/era"
 import { placeGigPostcodes } from "@/lib/gigs/select"
 
 export const maxDuration = 60
@@ -20,7 +21,9 @@ export default async function AreaPage(props: PageProps<"/area/[place]">) {
   const { place: placeId } = await props.params
   const place = placeById(placeId)
   if (!place) notFound()
+  const query = await props.searchParams
   const artists = artistsInPlace(place.id)
+  const page = Number(firstQuery(query.page) || "1")
   const kicker = place.precision === "borough" ? "Borough" : place.postcodes.join(" · ") || "Area"
   const codes = placeGigPostcodes(place.id)
   const codeLabel = codes.length > 0 ? codes.join(", ") : place.name
@@ -28,6 +31,8 @@ export default async function AreaPage(props: PageProps<"/area/[place]">) {
     <LocalityView
       kicker={kicker}
       title={place.name}
+      era={parseEra(firstQuery(query.era))}
+      page={Number.isFinite(page) ? page : 1}
       note={place.note}
       artists={artists}
       places={postcodeLinks(place.postcodes)}
@@ -42,4 +47,9 @@ export default async function AreaPage(props: PageProps<"/area/[place]">) {
       }}
     />
   )
+}
+
+function firstQuery(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) return value[0] ?? null
+  return value ?? null
 }

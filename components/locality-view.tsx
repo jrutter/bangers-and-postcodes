@@ -3,9 +3,11 @@ import { Suspense } from "react"
 import { ArtistBoard } from "@/components/artist-board"
 import { NewsletterSignup } from "@/components/newsletter-signup"
 import { LinkButton } from "@/components/link-button"
+import { EraFilter } from "@/components/era-filter"
 import { LocalityBody } from "@/components/locality-body"
 import { Badge } from "@/components/ui/badge"
 import { areaPath, playlistPath, postcodePath, type Scope } from "@/lib/catalogue"
+import { eraScope, filterArtists, withEra, type EraFilter as Era } from "@/lib/era"
 import { defaultAreasForScope } from "@/lib/newsletter/areas"
 import type { GigSelection } from "@/lib/gigs/types"
 import type { ArtistRecord, PlaceRecord } from "@/lib/types"
@@ -18,6 +20,8 @@ export function LocalityView({
   places,
   scope,
   gigs,
+  era = null,
+  page = 1,
 }: {
   kicker: string
   title: string
@@ -25,6 +29,8 @@ export function LocalityView({
   artists: ArtistRecord[]
   places: { href: string; label: string }[]
   scope: Scope
+  era?: Era | null
+  page?: number
   gigs: {
     heading: string
     intro: string
@@ -34,6 +40,8 @@ export function LocalityView({
     emptyLabel: string
   }
 }) {
+  const path = scopePath(scope)
+  const filtered = filterArtists(artists, era)
   return (
     <article className="space-y-8">
       <header className="max-w-3xl space-y-4">
@@ -49,7 +57,14 @@ export function LocalityView({
             ))}
           </div>
         ) : null}
-        <LinkButton href={playlistPath(scope)}>Make a playlist</LinkButton>
+        <EraFilter path={path} era={era} />
+        <p className="text-sm text-muted-foreground">
+          {filtered.length} {filtered.length === 1 ? "artist" : "artists"}
+          {era ? ` ${eraScope(era)}` : ""}. Lists are paged. Spotify stats load for the visible page.
+        </p>
+        <LinkButton href={withEra(playlistPath(scope), era)}>
+          {era ? `Make a playlist, ${eraScope(era)}` : "Make a playlist"}
+        </LinkButton>
       </header>
       <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the weekly email signup…</p>}>
         <NewsletterSignup placement="panel" defaultAreas={defaultAreasForScope(scope)} />
@@ -57,15 +72,21 @@ export function LocalityView({
       <Suspense
         fallback={
           <div className="space-y-6">
-            <ArtistBoard artists={artists} status="loading" />
+            <ArtistBoard artists={filtered} status="loading" />
             <p className="text-sm text-muted-foreground">Checking gig listings…</p>
           </div>
         }
       >
-        <LocalityBody artists={artists} emptyNote={note} gigs={gigs} scope={scope} />
+        <LocalityBody artists={filtered} emptyNote={note} gigs={gigs} scope={scope} era={era} page={page} path={path} />
       </Suspense>
     </article>
   )
+}
+
+function scopePath(scope: Scope): string {
+  if (scope.kind === "postcode") return postcodePath(scope.postcode)
+  if (scope.kind === "area") return areaPath(scope.placeId)
+  return "/"
 }
 
 export function placeLinks(records: PlaceRecord[]): { href: string; label: string }[] {

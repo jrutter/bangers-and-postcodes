@@ -6,7 +6,8 @@ import { describe, expect, it } from "vitest"
 import { artists, places } from "@/lib/catalogue"
 import type { Gig } from "@/lib/gigs/types"
 import { artistsInPostcode } from "@/lib/catalogue"
-import { buildMapModel, MAP_STYLE_URL } from "@/lib/map-model"
+import { MAP_STYLE_URL } from "@/lib/map-style"
+import { buildMapModel } from "@/lib/map-model"
 import { buildTasteProfile } from "@/lib/taste"
 import type { ArtistRecord, PlaceRecord } from "@/lib/types"
 import { venues } from "@/lib/venues"
@@ -28,7 +29,11 @@ describe("map model", () => {
     }
     expect(file.licence).toContain("creativecommons.org/licenses/by-sa/3.0")
     const ids = file.features.map((feature) => feature.id)
-    expect(ids.sort()).toEqual(["KT1", "KT2", "SW12", "SW13", "SW14", "SW15", "SW18", "SW19", "SW6", "TW1", "TW10", "TW9"])
+    expect(ids).toContain("SW15")
+    expect(ids).toContain("E1")
+    expect(ids).toContain("N1")
+    expect(ids).not.toContain("WD6")
+    expect(ids.length).toBeGreaterThan(100)
     for (const feature of file.features) {
       expect(feature.geometry.type).toBe("Polygon")
       const ring = feature.geometry.coordinates[0]
@@ -50,12 +55,35 @@ describe("map model", () => {
     expect(putney?.artistCount).toBe(artistsInPostcode("SW15").length)
     expect(putney?.label).toContain("Putney")
     expect(putney?.playlistHref).toBe("/playlist?scope=postcode%3ASW15")
+    expect(putney?.venues.some((venue) => venue.id === "half-moon")).toBe(true)
+    expect(putney?.venueCount).toBeGreaterThan(0)
     expect(putney?.highlighted).toBe(false)
     const twickenham = model.districts.find((district) => district.postcode === "TW1")
-    expect(twickenham?.label).toBe("Twickenham")
-    expect(twickenham?.artistCount).toBe(0)
-    expect(twickenham?.playlistHref).toBeNull()
+    expect(twickenham?.artistCount).toBe(artistsInPostcode("TW1").length)
+    expect(twickenham?.playlistHref).toBe(
+      artistsInPostcode("TW1").length > 0 ? "/playlist?scope=postcode%3ATW1" : null,
+    )
     expect(model.venues.find((venue) => venue.id === "half-moon")?.playlistHref).toBe("/playlist?scope=venue%3Ahalf-moon")
+  })
+
+  it("filters a district by era and keeps the era on the playlist link", () => {
+    const sixties = { ...artist("Sixties Band", "E1"), life_span: { begin: "1964", end: "1972", ended: true } }
+    const current = { ...artist("Current Band", "E1"), life_span: { begin: "2019", end: null, ended: false } }
+    const model = buildMapModel({
+      artists: [sixties, current],
+      places: [place("whitechapel", "Whitechapel", ["E1"])],
+      venues: [],
+      gigs: [],
+      now: NOW,
+      profile: null,
+      listingsConfigured: false,
+      era: 1960,
+    })
+    const district = model.districts.find((item) => item.postcode === "E1")
+    expect(district?.artistCount).toBe(1)
+    expect(district?.artists.map((item) => item.name)).toEqual(["Sixties Band"])
+    expect(district?.playlistHref).toBe("/playlist?scope=postcode%3AE1&era=1960")
+    expect(district?.pageHref).toBe("/postcode/e1?era=1960")
   })
 
   it("highlights a district and a venue when the billed artist matches taste", () => {

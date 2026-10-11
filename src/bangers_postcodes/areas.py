@@ -1,4 +1,4 @@
-"""Southwest London places used to decide who counts as local.
+"""London places used to decide who counts as local.
 
 MusicBrainz area names collide with other towns (Richmond, Virginia; Barnes
 County; a city called Kew in Johannesburg). Every MusicBrainz locality claim
@@ -30,9 +30,10 @@ class Place:
         return data
 
 
-# MBIDs and QIDs were resolved against the live MusicBrainz and Wikidata
-# APIs (area lookup, including parent "part of" relations).
-PLACES: tuple[Place, ...] = (
+# Hand-checked southwest places. `bangers places` keeps these postcodes, ids,
+# and notes when it rebuilds data/places.json for the rest of London.
+# MBIDs and QIDs were resolved against the live MusicBrainz and Wikidata APIs.
+CURATED: tuple[Place, ...] = (
     Place(
         id="barnes",
         name="Barnes",
@@ -213,6 +214,35 @@ PLACES: tuple[Place, ...] = (
         ),
     ),
 )
+
+
+def _load_places() -> tuple[Place, ...]:
+    """Prefer the committed London gazetteer. Fall back to the curated southwest list."""
+    import json
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[2] / "data" / "places.json"
+    if not path.exists():
+        return CURATED
+    rows = json.loads(path.read_text())
+    loaded = []
+    for row in rows:
+        loaded.append(
+            Place(
+                id=row["id"],
+                name=row["name"],
+                postcodes=tuple(row.get("postcodes") or ()),
+                precision=row["precision"],
+                musicbrainz_area_mbid=row.get("musicbrainz_area_mbid"),
+                musicbrainz_area_name=row.get("musicbrainz_area_name"),
+                wikidata_qid=row.get("wikidata_qid"),
+                note=row.get("note") or "",
+            )
+        )
+    return tuple(loaded)
+
+
+PLACES: tuple[Place, ...] = _load_places()
 
 
 def places_by_id() -> dict[str, Place]:

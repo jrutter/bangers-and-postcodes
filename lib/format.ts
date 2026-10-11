@@ -53,4 +53,4 @@ export function openSpotifyPlaylist(value: string | undefined): string | null {
 }
 
 export const TAGLINE =
-  "The best new music from your ends. Pick a London postcode and get a Spotify playlist of artists from right round the corner, plus stats on who's local, who's growing, and which part of town is turning out the tunes. Starting in southwest London, from Barnes to Wimbledon."
+  "The best music from your ends, old and new. Pick a London postcode and get a Spotify playlist of artists from right round the corner, from the City out to the boroughs."

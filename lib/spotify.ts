@@ -118,7 +118,7 @@ export function createSpotify(options?: { fetch?: FetchLike; env?: SpotifyEnv })
       return matched
     },
     async matchCatalogue(artists: ArtistRecord[]): Promise<MatchedArtist[]> {
-      return mapPool(artists, 6, (artist) => this.matchArtist(artist))
+      return mapPool(artists, 4, (artist) => this.matchArtist(artist))
     },
     async exchangeCode(code: string): Promise<TokenBundle> {
       return tokenRequest(fetchImpl, clientId(), clientSecret(), {
