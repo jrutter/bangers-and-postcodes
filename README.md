@@ -46,6 +46,7 @@ Pages:
 
 - `/` lists the southwest London postcodes and areas, with catalogue counts, plus venues and this week's gigs when a listings key is set. Logged-in listeners also get a For you section.
 - `/postcode/sw15` and `/area/putney` list local artists, the source of each locality claim, Spotify matches, and stats. Followers and popularity show as n/a when Spotify omits them. They also list local gigs near that postcode, including touring artists, and a playlist of who is billed in the next 7 days. For you ranks that page's artists and upcoming gigs.
+- `/map` draws the covered postcode districts and a pin for each venue. A district opens its artist count, local artists, upcoming gigs, and the existing postcode playlist. A venue opens its address, upcoming gigs, and the venue playlist. Logged-in taste highlights matching districts and pins in red.
 - `/gigs` is this week, then later shows, across the covered postcodes. `?sort=for-you` reorders by the listener's taste. Logged-out visitors keep date order and see a login prompt.
 - `/venues` and `/venue/half-moon` are the curated rooms. A venue page lists upcoming gigs attached to that room and can build a playlist of who's playing there. `/venues?sort=for-you` puts rooms with a matching upcoming bill first.
 - `/playlist` is where you log in with Spotify and create the playlist. The same form covers a postcode, this week's gigs, or a venue.
@@ -114,6 +115,7 @@ Spotify matching keeps an artist only when the Spotify name matches after case, 
 - Spotify has no hometown field, so a match is a name match, not a biography check.
 - For you uses top artists and tracks (about four weeks and about six months) and followed artists. If Spotify withholds genres or related artists, which newer apps often do, ranking falls back to those direct name matches and to artists credited on top tracks. Nothing is ranked for a logged-out visitor.
 - Listeners who logged in before `user-top-read` was requested still have a working playlist session. They need to log in again before For you can read their taste.
+- The map uses [MapLibre GL](https://maplibre.org/) (BSD-3-Clause) and [OpenFreeMap](https://openfreemap.org/) vector tiles, which need no API key. The tiles are OpenStreetMap data under the [Open Database Licence](https://www.openstreetmap.org/copyright). Postcode district shapes are the Wikipedia KML polygons republished by [uk-postcode-polygons](https://github.com/missinglink/uk-postcode-polygons), © Wikipedia contributors, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Centroids used elsewhere in the app are from postcodes.io under the Open Government Licence. Twickenham (TW1) and Balham (SW12) are drawn because venues sit there; they are not artist-catalogue postcodes, so they have no area playlist.
 - Popularity and follower counts depend on what the Spotify app is allowed to see.
 - Creating a playlist for all of southwest London matches the whole catalogue on Spotify in that request, so it can take a while.
 - Gig dates are only shown when Skiddle or Ticketmaster return them. There is no checked-in sample calendar.

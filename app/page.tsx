@@ -42,6 +42,9 @@ export default function HomePage() {
           <LinkButton href="/gigs" variant="outline">
             Gigs this week
           </LinkButton>
+          <LinkButton href="/map" variant="outline">
+            Map
+          </LinkButton>
         </div>
       </section>
 
