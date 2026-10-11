@@ -9,7 +9,7 @@ export default function PlaylistPage(props: PageProps<"/playlist">) {
   return (
     <div className="space-y-8">
       <header className="max-w-3xl space-y-4">
-        <p className="text-sm font-medium tracking-[0.16em] text-primary uppercase">Spotify</p>
+        <p className="text-sm font-medium tracking-[0.16em] text-info uppercase">Spotify</p>
         <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-5xl">Make a playlist</h1>
         <p className="text-base leading-7 text-muted-foreground">{TAGLINE}</p>
         <p className="text-sm leading-6 text-muted-foreground">

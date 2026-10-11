@@ -7,33 +7,33 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
     <div className="relative flex min-h-full flex-1 flex-col">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_at_top_left,rgba(197,54,43,0.14),transparent_55%),radial-gradient(ellipse_at_top_right,rgba(14,92,73,0.14),transparent_50%)]"
+        className="site-wash pointer-events-none absolute inset-x-0 top-0 h-72"
       />
       <a
         href="#content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2 focus:text-foreground focus:outline-2 focus:outline-offset-3 focus:outline-ring"
       >
         Skip to content
       </a>
       <header className="relative border-b border-border/80">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <Link href="/" className="font-heading text-xl font-semibold tracking-tight text-foreground">
+          <Link href="/" className="font-heading text-xl font-semibold tracking-tight text-foreground hover:text-foreground">
             Bangers <span className="text-primary">&</span> Postcodes
           </Link>
           <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm">
-            <Link href="/map" className="text-muted-foreground hover:text-foreground">
+            <Link href="/map" className="text-info underline-offset-4 hover:text-link-hover hover:underline">
               Map
             </Link>
-            <Link href="/gigs" className="text-muted-foreground hover:text-foreground">
+            <Link href="/gigs" className="text-info underline-offset-4 hover:text-link-hover hover:underline">
               Gigs
             </Link>
-            <Link href="/venues" className="text-muted-foreground hover:text-foreground">
+            <Link href="/venues" className="text-info underline-offset-4 hover:text-link-hover hover:underline">
               Venues
             </Link>
-            <Link href="/#areas" className="text-muted-foreground hover:text-foreground">
+            <Link href="/#areas" className="text-info underline-offset-4 hover:text-link-hover hover:underline">
               Areas
             </Link>
-            <Link href={playlistPath()} className="font-medium text-foreground hover:text-primary">
+            <Link href={playlistPath()} className="font-medium text-primary underline-offset-4 hover:text-link-hover hover:underline">
               Playlist
             </Link>
           </nav>

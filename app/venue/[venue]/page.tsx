@@ -26,7 +26,7 @@ export default async function VenuePage(props: PageProps<"/venue/[venue]">) {
   return (
     <article className="space-y-10">
       <header className="max-w-3xl space-y-4">
-        <p className="text-sm font-medium tracking-[0.16em] text-primary uppercase">{venue.postcode}</p>
+        <p className="text-sm font-medium tracking-[0.16em] text-info uppercase">{venue.postcode}</p>
         <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-5xl">{venue.name}</h1>
         <p className="text-base leading-7 text-muted-foreground">
           {venue.address}, {venue.postcode}. {venue.note}

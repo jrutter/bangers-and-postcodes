@@ -61,7 +61,7 @@ export async function PlaylistPanel({
         <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
           Created {playlistTitle || "the playlist"}
           {tracks ? ` with ${tracks} tracks` : ""}.{" "}
-          <a className="font-medium underline decoration-border underline-offset-4" href={created}>
+          <a className="spotify-link" href={created}>
             Open it on Spotify
           </a>
           .
@@ -75,7 +75,7 @@ export async function PlaylistPanel({
         </p>
       ) : null}
 
-      <form action={createPlaylist} className="space-y-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:p-6">
+      <form action={createPlaylist} className="space-y-4 rounded-xl bg-card p-4 ring-1 ring-border sm:p-6">
         <div className="space-y-2">
           <label htmlFor="scope" className="text-sm font-medium">
             Playlist covers
@@ -84,7 +84,7 @@ export async function PlaylistPanel({
             id="scope"
             name="scope"
             defaultValue={scopeValue(scope)}
-            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none"
           >
             <option value="all">All of southwest London</option>
             <optgroup label="Postcodes">
@@ -141,7 +141,9 @@ export async function PlaylistPanel({
         {loggedIn && configured ? <SubmitButton>Create playlist</SubmitButton> : null}
       </form>
       {loggedIn && configured ? null : (
-        <LinkButton href={`/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`}>Log in with Spotify</LinkButton>
+        <LinkButton href={`/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`} variant="spotify">
+          Log in with Spotify
+        </LinkButton>
       )}
       {loggedIn ? (
         <form action="/api/auth/logout" method="post">

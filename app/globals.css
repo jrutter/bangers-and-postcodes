@@ -4,39 +4,73 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+  Jake's palette — https://coolors.co/a63446-fbfef9-0c6291-000004-7e1946
+  The five custom properties below are the only app brand hex values.
+  Roles: raspberry = primary actions and the wordmark mark; paper = page
+  background and text on dark fills; blue = links, info labels, and focus;
+  ink = text; plum = accents and hover.
+  Spotify's own black and white are separate brand colors.
+  Spotify Green is not used for text or buttons: it is under WCAG AA on paper,
+  and white text on that green is under AA as well.
+*/
+
 :root {
-  --background: #f4efe4;
-  --foreground: #1c1915;
-  --card: #fffaf3;
-  --card-foreground: #1c1915;
-  --popover: #fffaf3;
-  --popover-foreground: #1c1915;
-  --primary: #c5362b;
-  --primary-foreground: #fffaf3;
-  --secondary: #0e5c49;
-  --secondary-foreground: #f4efe4;
-  --muted: #ebe4d6;
-  --muted-foreground: #5c5348;
-  --accent: #0e5c49;
-  --accent-foreground: #f4efe4;
-  --destructive: #c5362b;
-  --border: #e2d8c8;
-  --input: #e2d8c8;
-  --ring: #0e5c49;
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --raspberry: #a63446;
+  --paper: #fbfef9;
+  --blue: #0c6291;
+  --ink: #000004;
+  --plum: #7e1946;
+  --spotify-black: #191414;
+  --spotify-white: #ffffff;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: color-mix(in srgb, var(--ink) 3%, var(--paper));
+  --card-foreground: var(--ink);
+  --popover: var(--card);
+  --popover-foreground: var(--ink);
+  --primary: var(--raspberry);
+  --primary-foreground: var(--paper);
+  --secondary: color-mix(in srgb, var(--blue) 12%, var(--paper));
+  --secondary-foreground: var(--blue);
+  --muted: color-mix(in srgb, var(--plum) 8%, var(--paper));
+  --muted-foreground: color-mix(in srgb, var(--ink) 62%, var(--paper));
+  --accent: var(--plum);
+  --accent-foreground: var(--paper);
+  --accent-fill: var(--plum);
+  --accent-fill-foreground: var(--paper);
+  --info: var(--blue);
+  --link-hover: var(--plum);
+  --destructive: var(--raspberry);
+  --border: color-mix(in srgb, var(--ink) 45%, var(--paper));
+  --input: var(--border);
+  --ring: var(--blue);
+  --chart-1: var(--raspberry);
+  --chart-2: var(--blue);
+  --chart-3: var(--plum);
+  --chart-4: color-mix(in srgb, var(--blue) 55%, var(--paper));
+  --chart-5: var(--ink);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: var(--paper);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--raspberry);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--blue);
+
+  --map-fill: var(--blue);
+  --map-fill-highlight: var(--raspberry);
+  --map-line: var(--blue);
+  --map-line-highlight: var(--raspberry);
+  --map-line-selected: var(--ink);
+  --map-label: var(--ink);
+  --map-label-bg: var(--paper);
+  --map-pin: var(--paper);
+  --map-pin-highlight: var(--raspberry);
+  --map-pin-border: var(--ink);
 }
 
 @theme inline {
@@ -62,6 +96,10 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-accent-fill-foreground: var(--accent-fill-foreground);
+  --color-accent-fill: var(--accent-fill);
+  --color-link-hover: var(--link-hover);
+  --color-info: var(--info);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -74,6 +112,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-spotify-white: var(--spotify-white);
+  --color-spotify-black: var(--spotify-black);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -83,38 +123,48 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+  Dark theme for the existing .dark hook. The app does not toggle it.
+  Fills and text are mixes of the same five colours, lifted only where the
+  solid palette colour is under 4.5:1 (text) or 3:1 (controls) on near-black.
+  Map colours stay on the light-tile values: the base map is a light style.
+*/
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: var(--ink);
+  --foreground: var(--paper);
+  --card: color-mix(in srgb, var(--paper) 8%, var(--ink));
+  --card-foreground: var(--paper);
+  --popover: var(--card);
+  --popover-foreground: var(--paper);
+  --primary: color-mix(in srgb, var(--raspberry) 84%, var(--paper));
+  --primary-foreground: var(--paper);
+  --secondary: color-mix(in srgb, var(--blue) 28%, var(--ink));
+  --secondary-foreground: color-mix(in srgb, var(--blue) 65%, var(--paper));
+  --muted: color-mix(in srgb, var(--plum) 18%, var(--ink));
+  --muted-foreground: color-mix(in srgb, var(--paper) 68%, var(--ink));
+  --accent: color-mix(in srgb, var(--plum) 55%, var(--paper));
+  --accent-foreground: var(--ink);
+  --accent-fill: color-mix(in srgb, var(--plum) 70%, var(--paper));
+  --accent-fill-foreground: var(--paper);
+  --info: color-mix(in srgb, var(--blue) 65%, var(--paper));
+  --link-hover: color-mix(in srgb, var(--plum) 55%, var(--paper));
+  --destructive: color-mix(in srgb, var(--raspberry) 76%, var(--paper));
+  --border: color-mix(in srgb, var(--paper) 40%, var(--ink));
+  --input: var(--border);
+  --ring: color-mix(in srgb, var(--blue) 65%, var(--paper));
+  --chart-1: var(--primary);
+  --chart-2: var(--info);
+  --chart-3: var(--accent);
+  --chart-4: color-mix(in srgb, var(--blue) 40%, var(--paper));
+  --chart-5: var(--paper);
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--paper);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--paper);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 @layer base {
@@ -126,5 +176,75 @@
   }
   html {
     @apply font-sans;
+  }
+  :where(a:not([data-slot])) {
+    color: var(--info);
+  }
+  :where(a:not([data-slot])):hover {
+    color: var(--link-hover);
+  }
+  :where(a:not([data-slot]), button:not([data-slot]), select):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--raspberry) 28%, var(--paper));
+    color: var(--ink);
+  }
+}
+
+@layer components {
+  .site-wash {
+    background-image:
+      radial-gradient(ellipse at top left, color-mix(in srgb, var(--raspberry) 16%, transparent), transparent 55%),
+      radial-gradient(ellipse at top right, color-mix(in srgb, var(--blue) 14%, transparent), transparent 50%);
+  }
+
+  /* Spotify links stay on Spotify black/white. Hover does not shift them into the app palette. */
+  .spotify-link {
+    color: var(--spotify-black);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .spotify-link:hover,
+  .spotify-link:focus-visible {
+    color: var(--spotify-black);
+  }
+  .dark .spotify-link,
+  .dark .spotify-link:hover,
+  .dark .spotify-link:focus-visible {
+    color: var(--spotify-white);
+  }
+
+  .map-label {
+    font: 600 11px/1 var(--font-outfit), ui-sans-serif, sans-serif;
+    color: var(--map-label);
+    background: var(--map-label-bg);
+    padding: 2px 4px;
+    border-radius: 4px;
+    pointer-events: none;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 45%, var(--paper));
+  }
+
+  .map-pin {
+    box-sizing: border-box;
+    border-radius: 999px;
+    border: 2px solid var(--map-pin-border);
+    background: var(--map-pin);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 35%, transparent);
+    padding: 0;
+    cursor: pointer;
+  }
+  .map-pin[data-highlighted="true"] {
+    background: var(--map-pin-highlight);
+  }
+}
+
+/* The universal outline tint is a shade; focus rings on controls use the full blue. */
+@layer base {
+  .dark ::selection {
+    background: color-mix(in srgb, var(--raspberry) 55%, var(--ink));
+    color: var(--paper);
   }
 }

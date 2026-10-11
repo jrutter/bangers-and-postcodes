@@ -11,7 +11,7 @@ export function LinkButton({
 }: {
   href: string
   children: React.ReactNode
-  variant?: "default" | "outline" | "secondary" | "ghost"
+  variant?: "default" | "outline" | "secondary" | "ghost" | "spotify"
 }) {
   return (
     <Button variant={variant} size="lg" className="h-10 px-4" render={<Link href={href} />}>
