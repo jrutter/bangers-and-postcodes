@@ -42,8 +42,9 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
       <footer className="relative mt-auto border-t border-border/80">
         <p className="mx-auto max-w-5xl px-4 py-6 text-sm text-muted-foreground sm:px-6">
           Locality comes from MusicBrainz and Wikidata, not from Spotify. A Spotify match is a name match. Borough
-          links stay off the postcode counts. Gig listings come from Skiddle and Ticketmaster when those keys are set,
-          and stay empty when they are not.
+          links stay off the postcode counts.           Gig listings come from Skiddle and Ticketmaster when those keys are set,
+          and stay empty when they are not. A Spotify login can rank For you from
+          that session. Taste is not stored on the server.
         </p>
       </footer>
     </div>

@@ -3,8 +3,11 @@ import { Suspense } from "react"
 import { connection } from "next/server"
 
 import { GigSection } from "@/components/gig-section"
+import { TastePrompt } from "@/components/taste-prompt"
+import { TasteSort } from "@/components/taste-sort"
 import { loadRegionalGigs } from "@/lib/gigs/cache"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
+import { loadTasteSession, tasteAccess } from "@/lib/taste-session"
 
 export const metadata: Metadata = {
   title: "Gigs",
@@ -13,7 +16,7 @@ export const metadata: Metadata = {
 
 export const maxDuration = 60
 
-export default function GigsPage() {
+export default function GigsPage(props: PageProps<"/gigs">) {
   return (
     <div className="space-y-12">
       <header className="max-w-3xl space-y-4">
@@ -26,17 +29,27 @@ export default function GigsPage() {
         </p>
       </header>
       <Suspense fallback={<p className="text-sm text-muted-foreground">Checking gig listings…</p>}>
-        <GigsBody />
+        <GigsBody searchParams={props.searchParams} />
       </Suspense>
     </div>
   )
 }
 
-async function GigsBody() {
+async function GigsBody({
+  searchParams,
+}: {
+  searchParams: PageProps<"/gigs">["searchParams"]
+}) {
   await connection()
+  const query = await searchParams
+  const sort = first(query.sort) === "for-you" ? "for-you" : "date"
+  const access = await tasteAccess()
+  const taste = sort === "for-you" && (access === "granted" || access === "unknown") ? await loadTasteSession("/gigs?sort=for-you") : null
+  const sortTaste = taste?.status === "ready" ? taste.profile : null
   const feed = await loadRegionalGigs(gigProviderFingerprint())
   return (
     <div className="space-y-12">
+      <TasteControls pathname="/gigs" sort={sort} access={access} taste={taste} />
       <GigSection
         feed={feed}
         heading="This week"
@@ -46,6 +59,7 @@ async function GigsBody() {
         playlistScope={{ kind: "week", focus: "all" }}
         playlistLabel="This week's gigs playlist"
         emptyLabel="No gigs were listed for the next 7 days."
+        sortTaste={sortTaste}
       />
       <GigSection
         feed={feed}
@@ -54,7 +68,41 @@ async function GigsBody() {
         selection={{ kind: "southwest" }}
         span="later"
         emptyLabel="No later gigs were listed."
+        sortTaste={sortTaste}
       />
     </div>
   )
+}
+
+function TasteControls({
+  pathname,
+  sort,
+  access,
+  taste,
+}: {
+  pathname: string
+  sort: "date" | "for-you"
+  access: Awaited<ReturnType<typeof tasteAccess>>
+  taste: Awaited<ReturnType<typeof loadTasteSession>> | null
+}) {
+  if (access === "anonymous") return <TastePrompt returnTo={`${pathname}?sort=for-you`} mode="anonymous" />
+  if (access === "needs-scope" || taste?.status === "needs-scope") {
+    return <TastePrompt returnTo={`${pathname}?sort=for-you`} mode="needs-scope" />
+  }
+  return (
+    <div className="space-y-3">
+      <TasteSort pathname={pathname} sort={sort} />
+      {taste?.status === "error" ? <p className="text-sm text-muted-foreground">{taste.message}</p> : null}
+      {taste?.status === "empty" ? (
+        <p className="text-sm text-muted-foreground">
+          Spotify did not return top artists, tracks, or follows, so this list stays in date order.
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+function first(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0]
+  return value
 }

@@ -1,8 +1,9 @@
 import { connection } from "next/server"
 
 import { ArtistBoard, type BoardStatus } from "@/components/artist-board"
+import { ForYou } from "@/components/for-you"
 import { GigSection } from "@/components/gig-section"
-import type { Scope } from "@/lib/catalogue"
+import { areaPath, postcodePath, type Scope } from "@/lib/catalogue"
 import { loadRegionalGigs } from "@/lib/gigs/cache"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
 import { selectGigs } from "@/lib/gigs/select"
@@ -14,9 +15,11 @@ export async function LocalityBody({
   artists,
   emptyNote,
   gigs,
+  scope,
 }: {
   artists: ArtistRecord[]
   emptyNote?: string
+  scope: Scope
   gigs: {
     heading: string
     intro: string
@@ -44,6 +47,7 @@ export async function LocalityBody({
 
   return (
     <div className="space-y-10">
+      <ForYou artists={artists} selection={gigs.selection} returnTo={returnToFor(scope)} />
       <ArtistBoard artists={matched} status={status} message={message} emptyNote={emptyNote} gigs={localGigs} />
       <GigSection
         feed={feed}
@@ -59,4 +63,10 @@ export async function LocalityBody({
       />
     </div>
   )
+}
+
+function returnToFor(scope: Scope): string {
+  if (scope.kind === "postcode") return postcodePath(scope.postcode)
+  if (scope.kind === "area") return areaPath(scope.placeId)
+  return "/"
 }

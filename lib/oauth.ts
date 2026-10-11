@@ -3,6 +3,18 @@ export const AUTH_URL = "https://accounts.spotify.com/authorize"
 export const TOKEN_URL = "https://accounts.spotify.com/api/token"
 export const API_ROOT = "https://api.spotify.com/v1"
 export const PLAYLIST_SCOPES = ["playlist-modify-private", "playlist-modify-public"] as const
+export const TASTE_SCOPES = ["user-top-read", "user-follow-read"] as const
+/** Playlist scopes stay included so an existing create-playlist login still works. */
+export const LOGIN_SCOPES = [...PLAYLIST_SCOPES, ...TASTE_SCOPES] as const
+
+export function scopeAllowsTaste(scope: string | null | undefined): boolean {
+  if (!scope) return false
+  return scope.split(/\s+/).includes("user-top-read")
+}
+
+export function loginPath(returnTo: string): string {
+  return `/api/auth/login?returnTo=${encodeURIComponent(safeReturnPath(returnTo, "/"))}`
+}
 
 export function redirectUri(envValue?: string | null): string {
   const value = (envValue ?? "").trim()

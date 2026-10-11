@@ -38,14 +38,16 @@ TICKETMASTER_API_KEY=
 
 The app asks Skiddle for live and club events, and Ticketmaster for music events, inside an 8 mile radius of southwest London, then keeps listings whose postcode is one of the covered districts (the catalogue postcodes, plus TW1 and SW12 for the Twickenham and Balham rooms). Responses are cached for about six hours (`cacheLife` revalidate of 21600 seconds) so a page view does not hit the providers again. `npm run build` does not call them: the listings render on request, behind the same suspense boundary as the Spotify lookup.
 
-In the [Spotify developer dashboard](https://developer.spotify.com/dashboard), the app's redirect URIs must include that exact local address **and** the production https URL, for example `https://your-app.vercel.app/api/auth/callback`. Spotify rejects a login whose redirect URI is not on that list. Playlist login asks for `playlist-modify-private` and `playlist-modify-public`. New playlists are private unless you tick public.
+In the [Spotify developer dashboard](https://developer.spotify.com/dashboard), the app's redirect URIs must include that exact local address **and** the production https URL, for example `https://your-app.vercel.app/api/auth/callback`. Spotify rejects a login whose redirect URI is not on that list. Login asks for `playlist-modify-private`, `playlist-modify-public`, `user-top-read`, and `user-follow-read`. Playlist creation still uses the two playlist scopes. New playlists are private unless you tick public.
+
+The Spotify app is in development mode. Until a quota extension is approved, other people can log in only after they are added under User Management in the dashboard. After this taste change, those users need to log in again so Spotify grants the new scopes. Taste is read on each request and is not written to a database or cache.
 
 Pages:
 
-- `/` lists the southwest London postcodes and areas, with catalogue counts, plus venues and this week's gigs when a listings key is set.
-- `/postcode/sw15` and `/area/putney` list local artists, the source of each locality claim, Spotify matches, and stats. Followers and popularity show as n/a when Spotify omits them. They also list local gigs near that postcode, including touring artists, and a playlist of who is billed in the next 7 days.
-- `/gigs` is this week, then later shows, across the covered postcodes.
-- `/venues` and `/venue/half-moon` are the curated rooms. A venue page lists upcoming gigs attached to that room and can build a playlist of who's playing there.
+- `/` lists the southwest London postcodes and areas, with catalogue counts, plus venues and this week's gigs when a listings key is set. Logged-in listeners also get a For you section.
+- `/postcode/sw15` and `/area/putney` list local artists, the source of each locality claim, Spotify matches, and stats. Followers and popularity show as n/a when Spotify omits them. They also list local gigs near that postcode, including touring artists, and a playlist of who is billed in the next 7 days. For you ranks that page's artists and upcoming gigs.
+- `/gigs` is this week, then later shows, across the covered postcodes. `?sort=for-you` reorders by the listener's taste. Logged-out visitors keep date order and see a login prompt.
+- `/venues` and `/venue/half-moon` are the curated rooms. A venue page lists upcoming gigs attached to that room and can build a playlist of who's playing there. `/venues?sort=for-you` puts rooms with a matching upcoming bill first.
 - `/playlist` is where you log in with Spotify and create the playlist. The same form covers a postcode, this week's gigs, or a venue.
 
 Artist search and track lookup use the client-credentials flow and stay on the server. The client secret is never sent to the browser. Without credentials, the artist lists still render and Spotify fields stay empty.
@@ -110,6 +112,8 @@ Spotify matching keeps an artist only when the Spotify name matches after case, 
 - The same person can appear more than once when MusicBrainz has several artist records (Four Tet and Kieran Hebden, for example). Playlist creation keeps one track per Spotify artist. Aliases with no letters in the name are skipped.
 - A MusicBrainz comment that calls someone an author, actor, poet, or similar keeps them out, unless that comment also describes them as a musician. Wikidata items with no English name are skipped.
 - Spotify has no hometown field, so a match is a name match, not a biography check.
+- For you uses top artists and tracks (about four weeks and about six months) and followed artists. If Spotify withholds genres or related artists, which newer apps often do, ranking falls back to those direct name matches and to artists credited on top tracks. Nothing is ranked for a logged-out visitor.
+- Listeners who logged in before `user-top-read` was requested still have a working playlist session. They need to log in again before For you can read their taste.
 - Popularity and follower counts depend on what the Spotify app is allowed to see.
 - Creating a playlist for all of southwest London matches the whole catalogue on Spotify in that request, so it can take a while.
 - Gig dates are only shown when Skiddle or Ticketmaster return them. There is no checked-in sample calendar.

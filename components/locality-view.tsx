@@ -57,7 +57,7 @@ export function LocalityView({
           </div>
         }
       >
-        <LocalityBody artists={artists} emptyNote={note} gigs={gigs} />
+        <LocalityBody artists={artists} emptyNote={note} gigs={gigs} scope={scope} />
       </Suspense>
     </article>
   )

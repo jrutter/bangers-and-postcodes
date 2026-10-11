@@ -1,11 +1,13 @@
 import Link from "next/link"
 import { Suspense } from "react"
 
+import { ForYou } from "@/components/for-you"
 import { GigSection } from "@/components/gig-section"
 import { LinkButton } from "@/components/link-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   areaPath,
+  artists,
   catalogue,
   formatGeneratedAt,
   homePlaceCounts,
@@ -43,7 +45,11 @@ export default function HomePage() {
         </div>
       </section>
 
-        <Suspense fallback={<p className="text-sm text-muted-foreground">Checking listings for this week…</p>}>
+      <Suspense fallback={<p className="text-sm text-muted-foreground">Checking your Spotify taste…</p>}>
+        <ForYou artists={artists()} selection={{ kind: "southwest" }} returnTo="/" />
+      </Suspense>
+
+      <Suspense fallback={<p className="text-sm text-muted-foreground">Checking listings for this week…</p>}>
         <GigSection
           heading="This week in southwest London"
           intro="Artists with a gig in the next 7 days around these postcodes, including people who are touring through rather than from here."

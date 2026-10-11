@@ -2,12 +2,13 @@ import { connection } from "next/server"
 
 import { GigList } from "@/components/gig-list"
 import { LinkButton } from "@/components/link-button"
-import { isGigScope, playlistPath, type Scope } from "@/lib/catalogue"
+import { artists, isGigScope, playlistPath, type Scope } from "@/lib/catalogue"
 import { loadRegionalGigs } from "@/lib/gigs/cache"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
 import { artistRecordsForGigs, selectGigs, selectionForScope } from "@/lib/gigs/select"
 import { linksForGigArtists } from "@/lib/gigs/spotify"
 import type { GigFeed, GigSelection, TaggedGig } from "@/lib/gigs/types"
+import { indexTags, matchGig, orderByTaste, type TasteProfile } from "@/lib/taste"
 import type { MatchedArtist } from "@/lib/types"
 
 export async function GigSection({
@@ -22,6 +23,7 @@ export async function GigSection({
   knownArtists = [],
   showSpotifyNotice = true,
   emptyLabel,
+  sortTaste = null,
 }: {
   heading: string
   intro: string
@@ -34,10 +36,17 @@ export async function GigSection({
   knownArtists?: MatchedArtist[]
   showSpotifyNotice?: boolean
   emptyLabel: string
+  sortTaste?: TasteProfile | null
 }) {
   const resolved = await resolveFeed(feed)
   const now = new Date()
-  const gigs = selectGigs(resolved.gigs, selection, span, now)
+  const selected = selectGigs(resolved.gigs, selection, span, now)
+  const tags = sortTaste ? indexTags(artists()) : undefined
+  const ranked = sortTaste ? orderByTaste(selected, (gig) => matchGig(sortTaste, gig, tags)) : null
+  const gigs = ranked ? ranked.map((row) => row.item) : selected
+  const reasons = ranked
+    ? Object.fromEntries(ranked.flatMap((row) => (row.taste ? [[row.item.id, row.taste.reason]] : [])))
+    : undefined
   const shown = typeof limit === "number" ? gigs.slice(0, limit) : gigs
   const spotify = await linksForGigArtists(shown, knownArtists)
   const playlistGigs = playlistGigsFor(resolved, playlistScope, now)
@@ -57,7 +66,7 @@ export async function GigSection({
       {playlistScope && isGigScope(playlistScope) && playlistGigs.length === 0 && shown.length > 0 ? (
         <p className="text-sm text-muted-foreground">Nobody is listed for that playlist yet.</p>
       ) : null}
-      {shown.length > 0 ? <GigList gigs={shown} links={spotify.links} /> : null}
+      {shown.length > 0 ? <GigList gigs={shown} links={spotify.links} reasons={reasons} /> : null}
       {typeof limit === "number" && gigs.length > shown.length ? (
         <p className="text-sm text-muted-foreground">
           Showing {shown.length} of {gigs.length}.

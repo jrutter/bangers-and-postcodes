@@ -7,6 +7,7 @@ export const COOKIE = {
   access: "bangers_spotify_access",
   refresh: "bangers_spotify_refresh",
   expires: "bangers_spotify_expires",
+  scope: "bangers_spotify_scope",
   state: "bangers_oauth_state",
   returnTo: "bangers_oauth_return",
 } as const
@@ -33,6 +34,11 @@ export function tokenLifetime(expiresIn?: number): number {
   return typeof expiresIn === "number" && expiresIn > 0 ? expiresIn : 3600
 }
 
+/** True when the access cookie is still usable. Refresh writes cookies from a route handler, not during render. */
+export function accessIsFresh(access: string | undefined, expiresAt: number, now = Date.now()): access is string {
+  return Boolean(access) && expiresAt > now + 15_000
+}
+
 const REFRESH_MAX_AGE = 60 * 60 * 24 * 60
 
 type CookieWriter = {
@@ -47,6 +53,9 @@ export function applyTokenCookies(jar: CookieWriter, bundle: TokenBundle): void 
   if (bundle.refresh_token) {
     jar.set(COOKIE.refresh, bundle.refresh_token, cookieOptions(REFRESH_MAX_AGE))
   }
+  if (bundle.scope) {
+    jar.set(COOKIE.scope, bundle.scope, cookieOptions(REFRESH_MAX_AGE))
+  }
 }
 
 export async function hasSpotifySession(): Promise<boolean> {
@@ -59,7 +68,7 @@ export async function getUserToken(): Promise<string | null> {
   const access = jar.get(COOKIE.access)?.value
   const expires = Number(jar.get(COOKIE.expires)?.value || "0")
   const refresh = jar.get(COOKIE.refresh)?.value
-  if (access && expires > Date.now() + 15_000) return access
+  if (accessIsFresh(access, expires)) return access
   if (!refresh) return null
   try {
     const bundle = await spotifyClient().refresh(refresh)
