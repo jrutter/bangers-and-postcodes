@@ -32,6 +32,14 @@ export default async function PostcodePage(props: PageProps<"/postcode/[postcode
       artists={artists}
       places={placeLinks(areas)}
       scope={{ kind: "postcode", postcode: code }}
+      gigs={{
+        heading: `Local gigs near ${code}`,
+        intro: `Shows listed around ${code}, including touring artists at local venues. This is not limited to the catalogue above.`,
+        selection: { kind: "postcode", postcode: code },
+        playlistScope: { kind: "week", focus: { postcode: code } },
+        playlistLabel: "This week's gigs playlist",
+        emptyLabel: `No upcoming gigs were listed near ${code}.`,
+      }}
     />
   )
 }

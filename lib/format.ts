@@ -28,6 +28,17 @@ export function safeSpotifyImage(url: string | null | undefined): string | null 
   return null
 }
 
+export function safePreviewUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol === "https:") return parsed.toString()
+  } catch {
+    return null
+  }
+  return null
+}
+
 export function openSpotifyPlaylist(value: string | undefined): string | null {
   if (!value) return null
   try {

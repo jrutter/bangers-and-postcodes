@@ -20,7 +20,13 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
           <Link href="/" className="font-heading text-xl font-semibold tracking-tight text-foreground">
             Bangers <span className="text-primary">&</span> Postcodes
           </Link>
-          <nav className="flex items-center gap-4 text-sm">
+          <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm">
+            <Link href="/gigs" className="text-muted-foreground hover:text-foreground">
+              Gigs
+            </Link>
+            <Link href="/venues" className="text-muted-foreground hover:text-foreground">
+              Venues
+            </Link>
             <Link href="/#areas" className="text-muted-foreground hover:text-foreground">
               Areas
             </Link>
@@ -36,7 +42,8 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
       <footer className="relative mt-auto border-t border-border/80">
         <p className="mx-auto max-w-5xl px-4 py-6 text-sm text-muted-foreground sm:px-6">
           Locality comes from MusicBrainz and Wikidata, not from Spotify. A Spotify match is a name match. Borough
-          links stay off the postcode counts.
+          links stay off the postcode counts. Gig listings come from Skiddle and Ticketmaster when those keys are set,
+          and stay empty when they are not.
         </p>
       </footer>
     </div>

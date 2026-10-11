@@ -26,20 +26,34 @@ SPOTIFY_REDIRECT_URI=http://127.0.0.1:3000/api/auth/callback
 
 `SPOTIFY_REDIRECT_URI` is optional locally. If it is unset, the app uses `http://127.0.0.1:3000/api/auth/callback`.
 
+Gig listings use a separate pair of keys. Both are optional. With neither set, gig sections stay empty and say so. They are not filled with sample shows.
+
+```
+SKIDDLE_API_KEY=
+TICKETMASTER_API_KEY=
+```
+
+- `SKIDDLE_API_KEY` — [Skiddle API key](https://www.skiddle.com/api/join.php). Free for non-commercial use. The [API notes](https://www.skiddle.com/api/) say commercial use needs written approval from dev@skiddle.com. Reference: [Skiddle web API](https://github.com/Skiddle/web-api/blob/master/README.md).
+- `TICKETMASTER_API_KEY` — Discovery API consumer key from the [Ticketmaster developer portal](https://developer.ticketmaster.com/). Sign-up steps are on [Getting started](https://developer.ticketmaster.com/products-and-docs/apis/getting-started/). This is the Discovery API (`app.ticketmaster.com`), not the International Discovery API, which is closed to new keys and does not cover Ticketmaster.co.uk.
+
+The app asks Skiddle for live and club events, and Ticketmaster for music events, inside an 8 mile radius of southwest London, then keeps listings whose postcode is one of the covered districts (the catalogue postcodes, plus TW1 and SW12 for the Twickenham and Balham rooms). Responses are cached for about six hours (`cacheLife` revalidate of 21600 seconds) so a page view does not hit the providers again. `npm run build` does not call them: the listings render on request, behind the same suspense boundary as the Spotify lookup.
+
 In the [Spotify developer dashboard](https://developer.spotify.com/dashboard), the app's redirect URIs must include that exact local address **and** the production https URL, for example `https://your-app.vercel.app/api/auth/callback`. Spotify rejects a login whose redirect URI is not on that list. Playlist login asks for `playlist-modify-private` and `playlist-modify-public`. New playlists are private unless you tick public.
 
 Pages:
 
-- `/` lists the southwest London postcodes and areas, with catalogue counts.
-- `/postcode/sw15` and `/area/putney` list local artists, the source of each locality claim, Spotify matches, and stats. Followers and popularity show as n/a when Spotify omits them.
-- `/playlist` is where you log in with Spotify and create the playlist.
+- `/` lists the southwest London postcodes and areas, with catalogue counts, plus venues and this week's gigs when a listings key is set.
+- `/postcode/sw15` and `/area/putney` list local artists, the source of each locality claim, Spotify matches, and stats. Followers and popularity show as n/a when Spotify omits them. They also list local gigs near that postcode, including touring artists, and a playlist of who is billed in the next 7 days.
+- `/gigs` is this week, then later shows, across the covered postcodes.
+- `/venues` and `/venue/half-moon` are the curated rooms. A venue page lists upcoming gigs attached to that room and can build a playlist of who's playing there.
+- `/playlist` is where you log in with Spotify and create the playlist. The same form covers a postcode, this week's gigs, or a venue.
 
 Artist search and track lookup use the client-credentials flow and stay on the server. The client secret is never sent to the browser. Without credentials, the artist lists still render and Spotify fields stay empty.
 
 ## Deploy on Vercel
 
 1. Import this repository. The framework preset is Next.js. The build command is `npm run build`.
-2. Add environment variables: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, and `SPOTIFY_REDIRECT_URI`.
+2. Add environment variables: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, and `SPOTIFY_REDIRECT_URI`. For gigs, also add `SKIDDLE_API_KEY` and `TICKETMASTER_API_KEY` when you have them. Either gig key can be left unset.
 3. Set `SPOTIFY_REDIRECT_URI` to `https://<your-domain>/api/auth/callback`.
 4. Add that https URI, and `http://127.0.0.1:3000/api/auth/callback`, in the Spotify dashboard.
 5. Redeploy after the variables are saved. `npm run build` does not call Spotify.
@@ -82,6 +96,8 @@ Spotify matching keeps an artist only when the Spotify name matches after case, 
 
 - `app/` — Next.js App Router pages and Spotify login routes
 - `lib/` — catalogue, matching, stats, and playlist rules
+- `lib/gigs/` — gig provider interface, Skiddle, Ticketmaster, and the southwest filter
+- `lib/venues.ts` — curated rooms (addresses and postcodes, not gig dates)
 - `data/artists.json` — committed discovery output
 - `src/bangers_postcodes/` — MusicBrainz and Wikidata discovery
 
@@ -96,3 +112,8 @@ Spotify matching keeps an artist only when the Spotify name matches after case, 
 - Spotify has no hometown field, so a match is a name match, not a biography check.
 - Popularity and follower counts depend on what the Spotify app is allowed to see.
 - Creating a playlist for all of southwest London matches the whole catalogue on Spotify in that request, so it can take a while.
+- Gig dates are only shown when Skiddle or Ticketmaster return them. There is no checked-in sample calendar.
+- Pryzm Kingston (154 Clarence Street, KT1 1QP) closed in July 2025. A current Hippodrome music room in Kingston could not be verified, so neither is in the venue list. The Fighting Cocks, Banquet Records, and the other rooms on `/venues` are.
+- Songkick's public API is no longer available. Bandsintown's API is aimed at a single artist, or at partners who write to API@bandsintown.com, and it does not search by venue, so it is not wired up. A new provider is a `GigProvider` added to `gigProviders` in `lib/gigs/providers.ts`.
+- Ticketmaster Discovery can be thin for UK pub bills. Skiddle is the practical source for those. Club and live event codes are both requested. Theatre listings are left out unless a feed files them as music.
+- TW1 (Twickenham) and SW12 (Balham) are outside the artist-catalogue postcodes. They are included so Eel Pie Club, The Exchange, and The Bedford have a page. They show on the borough pages, not on TW9 or SW18.
