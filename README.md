@@ -46,12 +46,13 @@ The Spotify app is in development mode. Until a quota extension is approved, oth
 
 Pages:
 
-- `/` lists the southwest London postcodes and areas, with catalogue counts, plus venues and this week's gigs when a listings key is set. Logged-in listeners also get a For you section.
+- `/` lists the southwest London postcodes and areas, with catalogue counts, plus venues and this week's gigs when a listings key is set. Logged-in listeners also get a For you section and a short list of their English favourites.
+- `/favourites` is Your English favourites. For a logged-in listener it keeps Spotify top artists (about 4 weeks, 6 months, and several years, 50 each) and up to 100 followed artists when Wikidata or MusicBrainz places them in England. Country code GB is not enough. Each row shows the picture, the town, why they are on the list, the origin source, an Open in Spotify link, and a link to a postcode or area when that place is already in this catalogue. Origin unknown and artists not checked yet stay collapsed. A visit spends about 12 seconds on MusicBrainz, then asks for a refresh to continue. Lookups are cached. The playlist form's "Your English favourites" option builds one track per artist, up to 50, through the usual Spotify playlist flow.
 - `/postcode/sw15` and `/area/putney` list local artists, the source of each locality claim, Spotify matches, and stats. Followers and popularity show as n/a when Spotify omits them. They also list local gigs near that postcode, including touring artists, and a playlist of who is billed in the next 7 days. For you ranks that page's artists and upcoming gigs.
 - `/map` draws the covered postcode districts and a pin for each venue. A district opens its artist count, local artists, upcoming gigs, and the existing postcode playlist. A venue opens its address, upcoming gigs, and the venue playlist. Logged-in taste highlights matching districts and pins in red.
 - `/gigs` is this week, then later shows, across the covered postcodes. `?sort=for-you` reorders by the listener's taste. Logged-out visitors keep date order and see a login prompt.
 - `/venues` and `/venue/half-moon` are the curated rooms. A venue page lists upcoming gigs attached to that room and can build a playlist of who's playing there. `/venues?sort=for-you` puts rooms with a matching upcoming bill first.
-- `/playlist` is where you log in with Spotify and create the playlist. The same form covers a postcode, this week's gigs, or a venue.
+- `/playlist` is where you log in with Spotify and create the playlist. The same form covers a postcode, this week's gigs, a venue, or your English favourites.
 
 Artist search and track lookup use the client-credentials flow and stay on the server. The client secret is never sent to the browser. Without credentials, the artist lists still render and Spotify fields stay empty.
 

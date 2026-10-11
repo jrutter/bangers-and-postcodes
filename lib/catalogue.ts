@@ -64,6 +64,7 @@ export function homePrecision() {
 
 export type Scope =
   | { kind: "all" }
+  | { kind: "english" }
   | { kind: "postcode"; postcode: string }
   | { kind: "area"; placeId: string }
   | { kind: "venue"; venueId: string }
@@ -75,6 +76,7 @@ export function isGigScope(scope: Scope): scope is Extract<Scope, { kind: "week"
 
 export function parseScope(value: string | undefined | null): Scope | null {
   if (!value || value === "all") return { kind: "all" }
+  if (value === "english") return { kind: "english" }
   if (value.startsWith("postcode:")) {
     const postcode = value.slice("postcode:".length).toUpperCase()
     if (!knownPostcode(postcode)) return null
@@ -103,6 +105,7 @@ export function parseScope(value: string | undefined | null): Scope | null {
 
 export function scopeValue(scope: Scope): string {
   if (scope.kind === "all") return "all"
+  if (scope.kind === "english") return "english"
   if (scope.kind === "postcode") return `postcode:${scope.postcode}`
   if (scope.kind === "area") return `area:${scope.placeId}`
   if (scope.kind === "venue") return `venue:${scope.venueId}`
@@ -113,6 +116,7 @@ export function scopeValue(scope: Scope): string {
 
 export function scopeLabel(scope: Scope): string {
   if (scope.kind === "all") return "SW London"
+  if (scope.kind === "english") return "Your English favourites"
   if (scope.kind === "postcode") return scope.postcode
   if (scope.kind === "area") return placeById(scope.placeId)?.name ?? scope.placeId
   if (scope.kind === "venue") return venueById(scope.venueId)?.name ?? "Venue"
@@ -130,6 +134,7 @@ export function gigScopePhrase(scope: Extract<Scope, { kind: "week" | "venue" }>
 
 export function artistsForScope(scope: Scope): ArtistRecord[] {
   if (scope.kind === "all") return catalogue.artists
+  if (scope.kind === "english") return []
   if (scope.kind === "postcode") return artistsInPostcode(scope.postcode)
   if (scope.kind === "area") return artistsInPlace(scope.placeId)
   return []

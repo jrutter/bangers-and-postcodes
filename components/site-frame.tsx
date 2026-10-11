@@ -35,6 +35,9 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
             <Link href="/#areas" className="text-info underline-offset-4 hover:text-link-hover hover:underline">
               Areas
             </Link>
+            <Link href="/favourites" className="text-info underline-offset-4 hover:text-link-hover hover:underline">
+              Favourites
+            </Link>
             <Link href={playlistPath()} className="font-medium text-primary underline-offset-4 hover:text-link-hover hover:underline">
               Playlist
             </Link>
