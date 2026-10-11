@@ -112,6 +112,15 @@ export function safeFilterValue(value: string): string {
   return trimmed
 }
 
+export function newsletterEventProperties(input: { status: string; areaCount?: number }): Record<string, string | number> {
+  const status = input.status === "success" || input.status === "failed" || input.status === "submitted" ? input.status : "submitted"
+  const properties: Record<string, string | number> = { status }
+  if (typeof input.areaCount === "number" && Number.isFinite(input.areaCount)) {
+    properties.area_count = Math.max(0, Math.min(99, Math.round(input.areaCount)))
+  }
+  return properties
+}
+
 export function playlistEventProperties(input: {
   success: boolean
   status: string
@@ -119,8 +128,10 @@ export function playlistEventProperties(input: {
   scopeId: string
   isPublic: boolean
   trackCount: number
+  phase?: string | null
+  httpStatus?: number | null
 }): Record<string, string | number | boolean> {
-  return {
+  const properties: Record<string, string | number | boolean> = {
     success: input.success,
     status: safeFilterValue(input.status),
     scope_kind: safeFilterValue(input.scopeKind),
@@ -128,6 +139,9 @@ export function playlistEventProperties(input: {
     is_public: input.isPublic,
     track_count: input.trackCount,
   }
+  if (input.phase) properties.phase = safeFilterValue(input.phase)
+  if (typeof input.httpStatus === "number" && input.httpStatus > 0) properties.http_status = input.httpStatus
+  return properties
 }
 
 export function sanitizeProperties(input: Record<string, unknown> | undefined): Record<string, unknown> {

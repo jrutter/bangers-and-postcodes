@@ -6,7 +6,7 @@ import posthog from "posthog-js"
 import { Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react"
 
 import { Button } from "@/components/ui/button"
-import { eventsForPath, safeFilterValue } from "@/lib/analytics"
+import { eventsForPath, newsletterEventProperties, safeFilterValue } from "@/lib/analytics"
 import {
   analyticsKey,
   analyticsReady,
@@ -83,10 +83,7 @@ function AnalyticsListeners() {
     function onSubmit(event: Event) {
       const form = event.target
       if (!(form instanceof HTMLFormElement)) return
-      if (isNewsletterForm(form)) {
-        captureClient("newsletter_signup", { status: "submitted" })
-        return
-      }
+      if (isNewsletterForm(form)) return
       if (isSearchForm(form)) {
         const field = form.querySelector('input[type="search"], input[name="q"], input[name="query"]')
         const queryLength = field instanceof HTMLInputElement ? field.value.trim().length : 0
@@ -98,9 +95,11 @@ function AnalyticsListeners() {
     }
 
     function onNewsletter(event: Event) {
-      const detail = (event as CustomEvent<{ status?: string }>).detail
-      const status = detail?.status === "failed" || detail?.status === "success" ? detail.status : "submitted"
-      captureClient("newsletter_signup", { status })
+      const detail = (event as CustomEvent<{ status?: string; area_count?: number }>).detail
+      captureClient(
+        "newsletter_signup",
+        newsletterEventProperties({ status: detail?.status ?? "", areaCount: detail?.area_count }),
+      )
     }
 
     document.addEventListener("click", onClick)
@@ -126,7 +125,7 @@ function ConsentBanner() {
     <div
       role="dialog"
       aria-labelledby="analytics-consent-title"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 px-4 py-4 shadow-lg backdrop-blur-sm sm:px-6"
+      className="site-wash fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 px-4 py-4 text-foreground shadow-lg backdrop-blur-sm sm:px-6"
     >
       <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
@@ -143,7 +142,7 @@ function ConsentBanner() {
           <Button type="button" variant="outline" className="h-10 px-4" onClick={() => choose("rejected", setChoice)}>
             Reject
           </Button>
-          <Button type="button" variant="outline" className="h-10 px-4" onClick={() => choose("accepted", setChoice)}>
+          <Button type="button" className="h-10 px-4" onClick={() => choose("accepted", setChoice)}>
             Accept analytics
           </Button>
         </div>

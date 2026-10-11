@@ -69,20 +69,21 @@ export function SouthwestMap({ model }: { model: MapModel }) {
       mapRef.current = created
       created.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right")
       created.on("load", () => {
+        const colors = mapColors()
         created.addSource("districts", { type: "geojson", data: districtCollection(model) })
         created.addLayer({
           id: "district-fill",
           type: "fill",
           source: "districts",
           paint: {
-            "fill-color": ["case", ["==", ["get", "highlighted"], 1], "#c5362b", "#0e5c49"],
+            "fill-color": ["case", ["==", ["get", "highlighted"], 1], colors.highlight, colors.fill],
             "fill-opacity": [
               "case",
               ["boolean", ["feature-state", "selected"], false],
-              0.62,
+              0.5,
               ["==", ["get", "highlighted"], 1],
-              0.4,
-              0.22,
+              0.38,
+              0.2,
             ],
           },
         })
@@ -94,10 +95,10 @@ export function SouthwestMap({ model }: { model: MapModel }) {
             "line-color": [
               "case",
               ["boolean", ["feature-state", "selected"], false],
-              "#1c1915",
+              colors.selectedLine,
               ["==", ["get", "highlighted"], 1],
-              "#c5362b",
-              "#0e5c49",
+              colors.highlightLine,
+              colors.line,
             ],
             "line-width": ["case", ["boolean", ["feature-state", "selected"], false], 2.5, 1.2],
           },
@@ -118,8 +119,7 @@ export function SouthwestMap({ model }: { model: MapModel }) {
         for (const district of model.districts) {
           const label = document.createElement("span")
           label.textContent = district.postcode
-          label.style.cssText =
-            "font:600 11px/1 sans-serif;color:#1c1915;background:rgba(244,239,228,.92);padding:2px 4px;border-radius:4px;pointer-events:none;"
+          label.className = "map-label"
           markers.push(
             new maplibregl.Marker({ element: label, anchor: "center" })
               .setLngLat([district.longitude, district.latitude])
@@ -130,7 +130,11 @@ export function SouthwestMap({ model }: { model: MapModel }) {
           const pin = document.createElement("button")
           pin.type = "button"
           pin.setAttribute("aria-label", venue.name)
-          pin.style.cssText = `width:${venue.highlighted ? 18 : 14}px;height:${venue.highlighted ? 18 : 14}px;border-radius:999px;border:2px solid #1c1915;background:${venue.highlighted ? "#c5362b" : "#f4efe4"};box-shadow:0 1px 2px rgba(0,0,0,.35);`
+          pin.className = "map-pin"
+          if (venue.highlighted) pin.dataset.highlighted = "true"
+          const size = venue.highlighted ? "18px" : "14px"
+          pin.style.width = size
+          pin.style.height = size
           pin.addEventListener("click", (event) => {
             event.stopPropagation()
             setSelection({ kind: "venue", id: venue.id })
@@ -176,7 +180,7 @@ export function SouthwestMap({ model }: { model: MapModel }) {
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="min-w-0 space-y-3">
-        <div ref={container} className="h-[58vh] min-h-72 w-full overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/10 sm:h-[68vh]" />
+        <div ref={container} className="h-[58vh] min-h-72 w-full overflow-hidden rounded-xl bg-muted ring-1 ring-border sm:h-[68vh]" />
         {mapProblem ? (
           <p className="text-sm text-muted-foreground">
             {mapProblem} The district and venue buttons still open the same details. No tile key is required.
@@ -211,7 +215,7 @@ export function SouthwestMap({ model }: { model: MapModel }) {
           </div>
         </div>
       </div>
-      <aside className="rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:p-5">
+      <aside className="rounded-xl bg-card p-4 ring-1 ring-border sm:p-5">
         {selectedDistrict ? (
           <DistrictDetail district={selectedDistrict} listingsConfigured={model.listingsConfigured} />
         ) : selectedVenue ? (
@@ -235,9 +239,9 @@ function DistrictDetail({ district, listingsConfigured }: { district: MapDistric
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <p className="text-sm font-medium tracking-[0.16em] text-primary uppercase">{district.postcode}</p>
+        <p className="text-sm font-medium tracking-[0.16em] text-info uppercase">{district.postcode}</p>
         <h2 className="font-heading text-2xl font-semibold tracking-tight">{district.label}</h2>
-        {district.highlightReason ? <p className="text-sm font-medium text-primary">{district.highlightReason}</p> : null}
+        {district.highlightReason ? <p className="text-sm font-medium text-accent">{district.highlightReason}</p> : null}
         <p className="text-sm text-muted-foreground">
           {district.artistCount} {district.artistCount === 1 ? "artist" : "artists"} in the catalogue
         </p>
@@ -272,9 +276,9 @@ function VenueDetail({ venue, listingsConfigured }: { venue: MapVenuePin; listin
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <p className="text-sm font-medium tracking-[0.16em] text-primary uppercase">Venue</p>
+        <p className="text-sm font-medium tracking-[0.16em] text-info uppercase">Venue</p>
         <h2 className="font-heading text-2xl font-semibold tracking-tight">{venue.name}</h2>
-        {venue.highlightReason ? <p className="text-sm font-medium text-primary">{venue.highlightReason}</p> : null}
+        {venue.highlightReason ? <p className="text-sm font-medium text-accent">{venue.highlightReason}</p> : null}
         <p className="text-sm leading-6 text-muted-foreground">{venue.address}</p>
       </div>
       <GigList
@@ -344,7 +348,7 @@ function GigList({
                   <>
                     {" · "}
                     <a
-                      className="underline decoration-border underline-offset-4"
+                      className="underline decoration-border underline-offset-4 hover:text-link-hover"
                       href={gig.ticketUrl}
                       data-analytics="gig-ticket"
                       data-artist={gig.title}
@@ -364,6 +368,27 @@ function GigList({
   )
 }
 
+function mapColors() {
+  return {
+    fill: readCssColor("--map-fill", "#0c6291"),
+    highlight: readCssColor("--map-fill-highlight", "#a63446"),
+    line: readCssColor("--map-line", "#0c6291"),
+    highlightLine: readCssColor("--map-line-highlight", "#a63446"),
+    selectedLine: readCssColor("--map-line-selected", "#000004"),
+  }
+}
+
+function readCssColor(variable: string, fallback: string): string {
+  const probe = document.createElement("span")
+  probe.style.color = "transparent"
+  document.documentElement.appendChild(probe)
+  probe.style.color = `var(${variable}, transparent)`
+  const value = getComputedStyle(probe).color
+  probe.remove()
+  if (!value || value === "rgba(0, 0, 0, 0)") return fallback
+  return value
+}
+
 function mapFailure(error: unknown): string {
   const message = error instanceof Error ? error.message : ""
   if (/webgl/i.test(message)) return "This browser cannot draw the map."
@@ -373,7 +398,7 @@ function mapFailure(error: unknown): string {
 }
 
 function chipClass(selected: boolean, highlighted: boolean): string {
-  const base = "shrink-0 rounded-full px-3 py-1 text-sm ring-1 ring-foreground/15"
+  const base = "shrink-0 rounded-full px-3 py-1 text-sm ring-1 ring-border"
   if (selected) return `${base} bg-foreground text-background`
   if (highlighted) return `${base} bg-primary/15 text-foreground`
   return `${base} bg-card text-foreground`

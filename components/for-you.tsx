@@ -73,16 +73,16 @@ export async function ForYou({
       ) : null}
       {rankedArtists.length > 0 ? (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium tracking-[0.14em] text-primary uppercase">Artists</h3>
+          <h3 className="text-sm font-medium tracking-[0.14em] text-info uppercase">Artists</h3>
           <ol className="grid gap-2 sm:grid-cols-2">
             {rankedArtists.map((row, index) => {
               const href = artistHref(row.item)
               return (
-                <li key={`${row.item.mbid ?? row.item.name}-${index}`} className="rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10">
+                <li key={`${row.item.mbid ?? row.item.name}-${index}`} className="rounded-xl bg-card px-4 py-3 ring-1 ring-border">
                   <p className="font-medium">
                     <span className="mr-2 text-muted-foreground">{index + 1}</span>
                     {href ? (
-                      <Link href={href} className="underline decoration-border underline-offset-4 hover:text-primary">
+                      <Link href={href} className="underline decoration-border underline-offset-4 hover:text-link-hover">
                         {row.item.name}
                       </Link>
                     ) : (
@@ -98,7 +98,7 @@ export async function ForYou({
       ) : null}
       {rankedGigs.length > 0 ? (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium tracking-[0.14em] text-primary uppercase">Gigs</h3>
+          <h3 className="text-sm font-medium tracking-[0.14em] text-info uppercase">Gigs</h3>
           <GigList gigs={rankedGigs.map((row) => row.item)} links={spotify.links} reasons={reasons} />
         </div>
       ) : null}

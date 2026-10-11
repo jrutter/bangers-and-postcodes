@@ -3,6 +3,7 @@ import { Suspense } from "react"
 
 import { ForYou } from "@/components/for-you"
 import { GigSection } from "@/components/gig-section"
+import { NewsletterSignup } from "@/components/newsletter-signup"
 import { LinkButton } from "@/components/link-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -29,7 +30,7 @@ export default function HomePage() {
   return (
     <div className="space-y-14">
       <section className="max-w-3xl space-y-5">
-        <p className="text-sm font-medium tracking-[0.18em] text-primary uppercase">Southwest London</p>
+        <p className="text-sm font-medium tracking-[0.18em] text-info uppercase">Southwest London</p>
         <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-6xl">Bangers & Postcodes</h1>
         <p className="text-lg leading-8 text-foreground/90">{TAGLINE}</p>
         <p className="text-sm leading-6 text-muted-foreground">
@@ -65,6 +66,10 @@ export default function HomePage() {
         />
       </Suspense>
 
+      <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the weekly email signup…</p>}>
+        <NewsletterSignup placement="panel" defaultAreas={[]} />
+      </Suspense>
+
       <section id="postcodes" className="space-y-4">
         <div className="space-y-2">
           <h2 className="font-heading text-3xl font-semibold tracking-tight">Postcodes</h2>
@@ -76,7 +81,7 @@ export default function HomePage() {
           {postcodeCounts.map((row) => (
             <li key={row.postcode}>
               <Link href={postcodePath(row.postcode)} className="block h-full">
-                <Card className="h-full transition-colors hover:bg-muted/60">
+                <Card className="h-full transition-colors hover:bg-muted">
                   <CardHeader>
                     <CardTitle>
                       <span className="font-heading text-2xl font-semibold">{row.postcode}</span>
@@ -104,7 +109,7 @@ export default function HomePage() {
           {districts.map((place) => (
             <li key={place.placeId}>
               <Link href={areaPath(place.placeId)} className="block h-full">
-                <Card className="h-full transition-colors hover:bg-muted/60">
+                <Card className="h-full transition-colors hover:bg-muted">
                   <CardHeader>
                     <CardTitle>{place.placeName}</CardTitle>
                     <CardDescription>
@@ -131,7 +136,7 @@ export default function HomePage() {
               listed. Upcoming shows on each page come from the gig feeds, not from a sample list.
             </p>
           </div>
-          <Link href="/venues" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+          <Link href="/venues" className="text-sm font-medium text-info underline-offset-4 hover:text-link-hover hover:underline">
             All venues
           </Link>
         </div>
@@ -139,7 +144,7 @@ export default function HomePage() {
           {venues().map((venue) => (
             <li key={venue.id}>
               <Link href={venuePath(venue.id)} className="block h-full">
-                <Card className="h-full transition-colors hover:bg-muted/60">
+                <Card className="h-full transition-colors hover:bg-muted">
                   <CardHeader>
                     <CardTitle>{venue.name}</CardTitle>
                     <CardDescription>
@@ -169,7 +174,7 @@ export default function HomePage() {
           {boroughs.map((place) => (
             <li key={place.placeId}>
               <Link href={areaPath(place.placeId)} className="block h-full">
-                <Card className="h-full transition-colors hover:bg-muted/60">
+                <Card className="h-full transition-colors hover:bg-muted">
                   <CardHeader>
                     <CardTitle>{place.placeName}</CardTitle>
                     <CardDescription>

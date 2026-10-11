@@ -1,6 +1,6 @@
 "use server"
 
-import { redirect } from "next/navigation"
+import { redirect, unstable_rethrow } from "next/navigation"
 
 import { playlistEventProperties } from "@/lib/analytics"
 import { artistsForScope, gigScopePhrase, isGigScope, parseScope, scopeLabel, scopeValue, type Scope } from "@/lib/catalogue"
@@ -10,7 +10,7 @@ import { artistRecordsForGigs, selectGigs, selectionForScope } from "@/lib/gigs/
 import { gigPlaylistDescription, playlistDescription, playlistName, trackUris } from "@/lib/playlist"
 import { captureServerIfAllowed } from "@/lib/posthog-server"
 import { getUserToken } from "@/lib/session"
-import { spotifyClient } from "@/lib/spotify"
+import { SpotifyError, appendSpotifyFailure, spotifyClient } from "@/lib/spotify"
 import type { ArtistRecord } from "@/lib/types"
 
 export async function createPlaylist(formData: FormData) {
@@ -38,7 +38,8 @@ export async function createPlaylist(formData: FormData) {
   const name = playlistName(label, String(formData.get("name") || ""))
 
   let created: { url: string | null; trackCount: number; name: string } | null = null
-  let failure: "tracks" | "spotify" | "gigs" | "gig-keys" | null = null
+  let failure: "tracks" | "spotify" | "gigs" | "gig-keys" | "unknown" | null = null
+  let spotifyFailure: SpotifyError | null = null
   try {
     const loaded = isGigScope(scope) ? await artistsFromGigs(scope) : { artists: artistsForScope(scope), failure: null }
     if (loaded.failure) {
@@ -57,8 +58,27 @@ export async function createPlaylist(formData: FormData) {
         })
       }
     }
-  } catch {
-    failure = "spotify"
+  } catch (error) {
+    unstable_rethrow(error)
+    if (error instanceof SpotifyError) {
+      spotifyFailure = error
+    } else {
+      console.error("[playlist] create failed", error instanceof Error ? error.message : "unknown")
+      failure = "unknown"
+    }
+  }
+  if (spotifyFailure) {
+    await reportPlaylist({
+      success: false,
+      status: "spotify",
+      scopeKind: scope.kind,
+      scopeId: scopeKey(scope),
+      isPublic,
+      trackCount: 0,
+      phase: spotifyFailure.phase,
+      httpStatus: spotifyFailure.status,
+    })
+    redirect(appendSpotifyFailure(back, spotifyFailure))
   }
   if (failure || !created) {
     await reportPlaylist({
@@ -96,6 +116,8 @@ async function reportPlaylist(input: {
   scopeId: string
   isPublic: boolean
   trackCount: number
+  phase?: string | null
+  httpStatus?: number | null
 }) {
   try {
     await captureServerIfAllowed("playlist_created", playlistEventProperties(input))

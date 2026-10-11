@@ -34,6 +34,7 @@ import {
   distinctIdFromJar,
   distinctIdFromPosthogCookie,
   eventsForPath,
+  newsletterEventProperties,
   playlistEventProperties,
   posthogCookieName,
   readConsent,
@@ -117,6 +118,42 @@ describe("analytics events", () => {
       scope_id: "half-moon",
       is_public: false,
       track_count: 0,
+    })
+  })
+
+  it("records a newsletter signup without an email address", () => {
+    expect(newsletterEventProperties({ status: "success", areaCount: 2 })).toEqual({ status: "success", area_count: 2 })
+    expect(newsletterEventProperties({ status: "invalid", areaCount: 1 })).toEqual({ status: "submitted", area_count: 1 })
+    const properties = sanitizeProperties({
+      ...newsletterEventProperties({ status: "failed", areaCount: 3 }),
+      email: "person@example.com",
+    })
+    expect(properties.email).toBeUndefined()
+    expect(properties.status).toBe("failed")
+    expect(properties.area_count).toBe(3)
+  })
+
+  it("records a Spotify items failure as phase and status, not the upstream message", () => {
+    expect(
+      playlistEventProperties({
+        success: false,
+        status: "spotify",
+        scopeKind: "postcode",
+        scopeId: "SW15",
+        isPublic: false,
+        trackCount: 0,
+        phase: "items",
+        httpStatus: 403,
+      }),
+    ).toEqual({
+      success: false,
+      status: "spotify",
+      scope_kind: "postcode",
+      scope_id: "SW15",
+      is_public: false,
+      track_count: 0,
+      phase: "items",
+      http_status: 403,
     })
   })
 })

@@ -18,7 +18,7 @@ import {
 import { venues } from "@/lib/venues"
 import { openSpotifyPlaylist } from "@/lib/format"
 import { hasSpotifySession } from "@/lib/session"
-import { spotifyClient } from "@/lib/spotify"
+import { describeSpotifyFailure, spotifyClient } from "@/lib/spotify"
 
 const ERRORS: Record<string, string> = {
   credentials: "Spotify credentials are not set. Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to the environment.",
@@ -26,7 +26,7 @@ const ERRORS: Record<string, string> = {
   state: "That login attempt expired. Use Log in with Spotify again.",
   auth: "Log in with Spotify before creating a playlist.",
   tracks: "None of these artists have a Spotify track to add yet.",
-  spotify: "Spotify refused the playlist. Check the app redirect URI and try again.",
+  unknown: "The playlist could not be created. Try again.",
   scope: "That area is not in this catalogue.",
   gigs: "No artists were listed for that gig playlist, so nothing was created.",
   "gig-keys":
@@ -45,6 +45,20 @@ export async function PlaylistPanel({
   const loggedIn = await hasSpotifySession()
   const configured = spotifyClient().configured()
   const errorCode = first(query.error)
+  const errorText =
+    errorCode === "spotify"
+      ? describeSpotifyFailure({
+          status: first(query.spotifyStatus),
+          detail: first(query.spotifyDetail),
+          phase: first(query.spotifyPhase),
+        })
+      : errorCode
+        ? ERRORS[errorCode]
+        : undefined
+  const failedPlaylist =
+    errorCode === "spotify" && first(query.spotifyPhase) === "items"
+      ? openSpotifyPlaylist(first(query.spotifyPlaylist))
+      : null
   const created = openSpotifyPlaylist(first(query.created))
   const tracks = first(query.tracks)
   const playlistTitle = first(query.name)
@@ -54,19 +68,25 @@ export async function PlaylistPanel({
 
   return (
     <div className="max-w-xl space-y-6">
-      {errorCode && ERRORS[errorCode] ? (
-        <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm">{ERRORS[errorCode]}</p>
+      {errorText ? (
+        <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
+          {errorText}
+          {failedPlaylist ? (
+            <>
+              {" "}
+              <a className="spotify-link" href={failedPlaylist}>
+                Open the playlist on Spotify
+              </a>
+              .
+            </>
+          ) : null}
+        </p>
       ) : null}
       {created ? (
         <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
           Created {playlistTitle || "the playlist"}
           {tracks ? ` with ${tracks} tracks` : ""}.{" "}
-          <a
-            className="font-medium underline decoration-border underline-offset-4"
-            href={created}
-            data-analytics="spotify-open"
-            data-kind="playlist"
-          >
+          <a className="spotify-link" href={created} data-analytics="spotify-open" data-kind="playlist">
             Open it on Spotify
           </a>
           .
@@ -80,7 +100,7 @@ export async function PlaylistPanel({
         </p>
       ) : null}
 
-      <form action={createPlaylist} className="space-y-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:p-6">
+      <form action={createPlaylist} className="space-y-4 rounded-xl bg-card p-4 ring-1 ring-border sm:p-6">
         <div className="space-y-2">
           <label htmlFor="scope" className="text-sm font-medium">
             Playlist covers
@@ -90,7 +110,7 @@ export async function PlaylistPanel({
             name="scope"
             defaultValue={scopeValue(scope)}
             data-analytics-filter="playlist_scope"
-            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none"
           >
             <option value="all">All of southwest London</option>
             <optgroup label="Postcodes">
@@ -147,7 +167,9 @@ export async function PlaylistPanel({
         {loggedIn && configured ? <SubmitButton>Create playlist</SubmitButton> : null}
       </form>
       {loggedIn && configured ? null : (
-        <LinkButton href={`/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`}>Log in with Spotify</LinkButton>
+        <LinkButton href={`/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`} variant="spotify">
+          Log in with Spotify
+        </LinkButton>
       )}
       {loggedIn ? (
         <form action="/api/auth/logout" method="post">

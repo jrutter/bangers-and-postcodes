@@ -11,7 +11,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
   }, [error])
   return (
     <div className="max-w-xl space-y-4">
-      <p className="text-sm font-medium tracking-[0.16em] text-primary uppercase">Error</p>
+      <p className="text-sm font-medium tracking-[0.16em] text-info uppercase">Error</p>
       <h1 className="font-heading text-4xl font-semibold tracking-tight">This page did not load</h1>
       <p className="text-muted-foreground">
         The catalogue is still on disk. Try the page again, or go back to the list of postcodes.
