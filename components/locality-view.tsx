@@ -2,9 +2,10 @@ import { Suspense } from "react"
 
 import { ArtistBoard } from "@/components/artist-board"
 import { LinkButton } from "@/components/link-button"
-import { MatchedArtists } from "@/components/matched-artists"
+import { LocalityBody } from "@/components/locality-body"
 import { Badge } from "@/components/ui/badge"
 import { areaPath, playlistPath, postcodePath, type Scope } from "@/lib/catalogue"
+import type { GigSelection } from "@/lib/gigs/types"
 import type { ArtistRecord, PlaceRecord } from "@/lib/types"
 
 export function LocalityView({
@@ -14,6 +15,7 @@ export function LocalityView({
   artists,
   places,
   scope,
+  gigs,
 }: {
   kicker: string
   title: string
@@ -21,6 +23,14 @@ export function LocalityView({
   artists: ArtistRecord[]
   places: { href: string; label: string }[]
   scope: Scope
+  gigs: {
+    heading: string
+    intro: string
+    selection: GigSelection
+    playlistScope: Scope
+    playlistLabel: string
+    emptyLabel: string
+  }
 }) {
   return (
     <article className="space-y-8">
@@ -39,13 +49,16 @@ export function LocalityView({
         ) : null}
         <LinkButton href={playlistPath(scope)}>Make a playlist</LinkButton>
       </header>
-      {artists.length === 0 ? (
-        <ArtistBoard artists={[]} status="ready" emptyNote={note} />
-      ) : (
-        <Suspense fallback={<ArtistBoard artists={artists} status="loading" />}>
-          <MatchedArtists artists={artists} />
-        </Suspense>
-      )}
+      <Suspense
+        fallback={
+          <div className="space-y-6">
+            <ArtistBoard artists={artists} status="loading" />
+            <p className="text-sm text-muted-foreground">Checking gig listings…</p>
+          </div>
+        }
+      >
+        <LocalityBody artists={artists} emptyNote={note} gigs={gigs} />
+      </Suspense>
     </article>
   )
 }

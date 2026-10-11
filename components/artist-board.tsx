@@ -4,7 +4,10 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { areaPath } from "@/lib/catalogue"
-import { claimLabel, metricText, safeSpotifyImage, spotifyTrackUrl } from "@/lib/format"
+import { claimLabel, metricText, safePreviewUrl, safeSpotifyImage, spotifyTrackUrl } from "@/lib/format"
+import { formatGigWhen, gigsForArtist } from "@/lib/gigs/select"
+import type { TaggedGig } from "@/lib/gigs/types"
+import { venuePath } from "@/lib/venues"
 import { summarize } from "@/lib/stats"
 import type { MatchedArtist } from "@/lib/types"
 
@@ -15,11 +18,13 @@ export function ArtistBoard({
   status,
   message,
   emptyNote,
+  gigs = [],
 }: {
   artists: MatchedArtist[]
   status: BoardStatus
   message?: string
   emptyNote?: string
+  gigs?: TaggedGig[]
 }) {
   if (artists.length === 0) {
     return (
@@ -101,7 +106,11 @@ export function ArtistBoard({
         <ul className="grid gap-3">
           {artists.map((artist) => (
             <li key={`${artist.mbid ?? "wd"}-${artist.wikidata_qid ?? artist.name}`}>
-              <ArtistCard artist={artist} showSpotify={spotifyReady || status === "error" || status === "unconfigured"} />
+              <ArtistCard
+                artist={artist}
+                gigs={gigs}
+                showSpotify={spotifyReady || status === "error" || status === "unconfigured"}
+              />
             </li>
           ))}
         </ul>
@@ -110,7 +119,7 @@ export function ArtistBoard({
   )
 }
 
-function ArtistCard({ artist, showSpotify }: { artist: MatchedArtist; showSpotify: boolean }) {
+function ArtistCard({ artist, showSpotify, gigs }: { artist: MatchedArtist; showSpotify: boolean; gigs: TaggedGig[] }) {
   const image = safeSpotifyImage(artist.spotify?.image)
   const track = artist.spotify?.representative_track
   const trackUrl = spotifyTrackUrl(track?.uri)
@@ -161,8 +170,42 @@ function ArtistCard({ artist, showSpotify }: { artist: MatchedArtist; showSpotif
           </p>
         ) : null}
         {showSpotify ? <SpotifyLine artist={artist} trackUrl={trackUrl} /> : null}
+        <ArtistGigs artistName={artist.name} gigs={gigs} />
       </CardContent>
     </Card>
+  )
+}
+
+function ArtistGigs({ artistName, gigs }: { artistName: string; gigs: TaggedGig[] }) {
+  const upcoming = gigsForArtist(artistName, gigs)
+  if (upcoming.length === 0) return null
+  return (
+    <div className="space-y-1 text-sm">
+      <p className="font-medium">Upcoming here</p>
+      <ul className="space-y-1 text-muted-foreground">
+        {upcoming.map((gig) => (
+          <li key={gig.id}>
+            <time dateTime={gig.startsAt ?? gig.date ?? undefined}>{formatGigWhen(gig)}</time>
+            {" · "}
+            {gig.venueId ? (
+              <Link href={venuePath(gig.venueId)} className="underline decoration-border underline-offset-4 hover:text-primary">
+                {gig.venueName}
+              </Link>
+            ) : (
+              gig.venueName
+            )}
+            {gig.ticketUrl ? (
+              <>
+                {" · "}
+                <a className="underline decoration-border underline-offset-4 hover:text-primary" href={gig.ticketUrl}>
+                  Tickets
+                </a>
+              </>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 
@@ -174,6 +217,7 @@ function SpotifyLine({ artist, trackUrl }: { artist: MatchedArtist; trackUrl: st
     return <p className="text-sm text-muted-foreground">No exact Spotify name match.</p>
   }
   const track = artist.spotify.representative_track
+  const preview = safePreviewUrl(track?.preview_url)
   return (
     <div className="space-y-1 text-sm">
       <p>
@@ -203,6 +247,11 @@ function SpotifyLine({ artist, trackUrl }: { artist: MatchedArtist; trackUrl: st
       ) : (
         <p className="text-muted-foreground">No representative track yet.</p>
       )}
+      {preview ? (
+        <audio controls preload="none" src={preview} className="w-full max-w-sm">
+          Preview
+        </audio>
+      ) : null}
     </div>
   )
 }

@@ -7,12 +7,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   artistsForScope,
+  gigScopePhrase,
+  isGigScope,
   parseScope,
   places,
   postcodes,
   scopeLabel,
   scopeValue,
 } from "@/lib/catalogue"
+import { venues } from "@/lib/venues"
 import { openSpotifyPlaylist } from "@/lib/format"
 import { hasSpotifySession } from "@/lib/session"
 import { spotifyClient } from "@/lib/spotify"
@@ -25,6 +28,9 @@ const ERRORS: Record<string, string> = {
   tracks: "None of these artists have a Spotify track to add yet.",
   spotify: "Spotify refused the playlist. Check the app redirect URI and try again.",
   scope: "That area is not in this catalogue.",
+  gigs: "No artists were listed for that gig playlist, so nothing was created.",
+  "gig-keys":
+    "Add SKIDDLE_API_KEY or TICKETMASTER_API_KEY before building a gig playlist. Sample artists are not used.",
 }
 
 export async function PlaylistPanel({
@@ -42,7 +48,8 @@ export async function PlaylistPanel({
   const created = openSpotifyPlaylist(first(query.created))
   const tracks = first(query.tracks)
   const playlistTitle = first(query.name)
-  const artistCount = artistsForScope(scope).length
+  const gigScope = isGigScope(scope)
+  const artistCount = gigScope ? 0 : artistsForScope(scope).length
   const returnTo = `/playlist?scope=${encodeURIComponent(scopeValue(scope))}`
 
   return (
@@ -94,10 +101,31 @@ export async function PlaylistPanel({
                 </option>
               ))}
             </optgroup>
+            <optgroup label="This week's gigs">
+              <option value="week:all">This week across southwest London</option>
+              {postcodes().map((postcode) => (
+                <option key={`week-${postcode}`} value={`week:${postcode}`}>
+                  This week near {postcode}
+                </option>
+              ))}
+              {places().map((place) => (
+                <option key={`week-${place.id}`} value={`week:${place.id}`}>
+                  This week around {place.name}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Venues">
+              {venues().map((venue) => (
+                <option key={venue.id} value={`venue:${venue.id}`}>
+                  Who is playing at {venue.name}
+                </option>
+              ))}
+            </optgroup>
           </select>
           <p className="text-sm text-muted-foreground">
-            {artistCount} {artistCount === 1 ? "artist" : "artists"} in the catalogue for {scopeLabel(scope)}. Spotify
-            matching runs when you create the playlist.
+            {gigScope
+              ? `Artists are whoever is billed ${gigScopePhrase(scope)}. Spotify matching runs when you create the playlist.`
+              : `${artistCount} ${artistCount === 1 ? "artist" : "artists"} in the catalogue for ${scopeLabel(scope)}. Spotify matching runs when you create the playlist.`}
           </p>
         </div>
         <div className="space-y-2">

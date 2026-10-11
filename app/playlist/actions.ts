@@ -2,10 +2,14 @@
 
 import { redirect } from "next/navigation"
 
-import { artistsForScope, parseScope, scopeLabel, scopeValue } from "@/lib/catalogue"
-import { playlistDescription, playlistName, trackUris } from "@/lib/playlist"
+import { artistsForScope, gigScopePhrase, isGigScope, parseScope, scopeLabel, scopeValue } from "@/lib/catalogue"
+import { loadRegionalGigs } from "@/lib/gigs/cache"
+import { gigProviderFingerprint } from "@/lib/gigs/providers"
+import { artistRecordsForGigs, selectGigs, selectionForScope } from "@/lib/gigs/select"
+import { gigPlaylistDescription, playlistDescription, playlistName, trackUris } from "@/lib/playlist"
 import { getUserToken } from "@/lib/session"
 import { spotifyClient } from "@/lib/spotify"
+import type { ArtistRecord } from "@/lib/types"
 
 export async function createPlaylist(formData: FormData) {
   const scope = parseScope(String(formData.get("scope") || "all"))
@@ -21,22 +25,26 @@ export async function createPlaylist(formData: FormData) {
   const label = scopeLabel(scope)
   const name = playlistName(label, String(formData.get("name") || ""))
   const isPublic = formData.get("public") === "1"
-  const artists = artistsForScope(scope)
 
   let created: { url: string | null; trackCount: number; name: string } | null = null
-  let failure: "tracks" | "spotify" | null = null
+  let failure: "tracks" | "spotify" | "gigs" | "gig-keys" | null = null
   try {
-    const matched = await client.matchCatalogue(artists)
-    const uris = trackUris(matched)
-    if (uris.length === 0) {
-      failure = "tracks"
+    const loaded = isGigScope(scope) ? await artistsFromGigs(scope) : { artists: artistsForScope(scope), failure: null }
+    if (loaded.failure) {
+      failure = loaded.failure
     } else {
-      created = await client.createPlaylist(token, {
-        name,
-        description: playlistDescription(label),
-        isPublic,
-        uris,
-      })
+      const matched = await client.matchCatalogue(loaded.artists)
+      const uris = trackUris(matched)
+      if (uris.length === 0) {
+        failure = "tracks"
+      } else {
+        created = await client.createPlaylist(token, {
+          name,
+          description: isGigScope(scope) ? gigPlaylistDescription(gigScopePhrase(scope)) : playlistDescription(label),
+          isPublic,
+          uris,
+        })
+      }
     }
   } catch {
     failure = "spotify"
@@ -49,6 +57,21 @@ export async function createPlaylist(formData: FormData) {
   destination.searchParams.set("tracks", String(created.trackCount))
   destination.searchParams.set("name", created.name)
   redirect(`${destination.pathname}${destination.search}`)
+}
+
+async function artistsFromGigs(scope: Parameters<typeof selectionForScope>[0]): Promise<{
+  artists: ArtistRecord[]
+  failure: "gigs" | "gig-keys" | null
+}> {
+  const feed = await loadRegionalGigs(gigProviderFingerprint())
+  if (!feed.providers.some((provider) => provider.configured)) {
+    return { artists: [], failure: "gig-keys" }
+  }
+  const chosen = selectionForScope(scope)
+  const gigs = selectGigs(feed.gigs, chosen.selection, chosen.span, new Date())
+  const artists = artistRecordsForGigs(gigs)
+  if (artists.length === 0) return { artists: [], failure: "gigs" }
+  return { artists, failure: null }
 }
 
 function withQuery(path: string, key: string, value: string): string {

@@ -52,3 +52,7 @@ export function playlistDescription(label: string): string {
     300,
   )
 }
+
+export function gigPlaylistDescription(phrase: string): string {
+  return `Artists with gigs ${phrase}. Built by Bangers & Postcodes from local listings, one Spotify track each.`.slice(0, 300)
+}

@@ -1,5 +1,7 @@
 import Link from "next/link"
+import { Suspense } from "react"
 
+import { GigSection } from "@/components/gig-section"
 import { LinkButton } from "@/components/link-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -13,6 +15,7 @@ import {
   postcodePath,
 } from "@/lib/catalogue"
 import { TAGLINE } from "@/lib/format"
+import { venuePath, venues } from "@/lib/venues"
 
 export default function HomePage() {
   const postcodeCounts = homePostcodeCounts()
@@ -32,8 +35,26 @@ export default function HomePage() {
           borough level, which is wider than these postcodes, so they stay off the postcode totals. Catalogue from{" "}
           {formatGeneratedAt(catalogue.generated_at)}, {catalogue.artist_count} artists.
         </p>
-        <LinkButton href={playlistPath()}>Make an SW London playlist</LinkButton>
+        <div className="flex flex-wrap gap-3">
+          <LinkButton href={playlistPath()}>Make an SW London playlist</LinkButton>
+          <LinkButton href="/gigs" variant="outline">
+            Gigs this week
+          </LinkButton>
+        </div>
       </section>
+
+        <Suspense fallback={<p className="text-sm text-muted-foreground">Checking listings for this week…</p>}>
+        <GigSection
+          heading="This week in southwest London"
+          intro="Artists with a gig in the next 7 days around these postcodes, including people who are touring through rather than from here."
+          selection={{ kind: "southwest" }}
+          span="week"
+          playlistScope={{ kind: "week", focus: "all" }}
+          playlistLabel="This week's gigs playlist"
+          emptyLabel="No gigs were listed for the next 7 days."
+          limit={6}
+        />
+      </Suspense>
 
       <section id="postcodes" className="space-y-4">
         <div className="space-y-2">
@@ -84,6 +105,41 @@ export default function HomePage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm leading-6 text-muted-foreground">{place.note}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section id="venues" className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="space-y-2">
+            <h2 className="font-heading text-3xl font-semibold tracking-tight">Venues</h2>
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+              Rooms in southwest London that actually put music on. Pryzm Kingston closed in July 2025, so it is not
+              listed. Upcoming shows on each page come from the gig feeds, not from a sample list.
+            </p>
+          </div>
+          <Link href="/venues" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+            All venues
+          </Link>
+        </div>
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {venues().map((venue) => (
+            <li key={venue.id}>
+              <Link href={venuePath(venue.id)} className="block h-full">
+                <Card className="h-full transition-colors hover:bg-muted/60">
+                  <CardHeader>
+                    <CardTitle>{venue.name}</CardTitle>
+                    <CardDescription>
+                      {venue.postcode}
+                      {venue.postcodes.length > 0 ? ` · ${venue.postcodes.join(", ")}` : ""}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm leading-6 text-muted-foreground">{venue.note}</p>
                   </CardContent>
                 </Card>
               </Link>

@@ -1,6 +1,7 @@
 import catalogueJson from "@/data/artists.json"
 
 import type { ArtistRecord, Catalogue, PlaceRecord } from "@/lib/types"
+import { venueById } from "@/lib/venues"
 import {
   artistsForPlace,
   artistsForPostcode,
@@ -65,6 +66,12 @@ export type Scope =
   | { kind: "all" }
   | { kind: "postcode"; postcode: string }
   | { kind: "area"; placeId: string }
+  | { kind: "venue"; venueId: string }
+  | { kind: "week"; focus: "all" | { postcode: string } | { placeId: string } }
+
+export function isGigScope(scope: Scope): scope is Extract<Scope, { kind: "week" | "venue" }> {
+  return scope.kind === "week" || scope.kind === "venue"
+}
 
 export function parseScope(value: string | undefined | null): Scope | null {
   if (!value || value === "all") return { kind: "all" }
@@ -78,25 +85,54 @@ export function parseScope(value: string | undefined | null): Scope | null {
     if (!placeById(placeId)) return null
     return { kind: "area", placeId }
   }
+  if (value.startsWith("venue:")) {
+    const venueId = value.slice("venue:".length)
+    if (!venueById(venueId)) return null
+    return { kind: "venue", venueId }
+  }
+  if (value.startsWith("week:")) {
+    const rest = value.slice("week:".length)
+    if (rest.toLowerCase() === "all") return { kind: "week", focus: "all" }
+    const postcode = rest.toUpperCase()
+    if (knownPostcode(postcode)) return { kind: "week", focus: { postcode } }
+    if (placeById(rest)) return { kind: "week", focus: { placeId: rest } }
+    return null
+  }
   return null
 }
 
 export function scopeValue(scope: Scope): string {
   if (scope.kind === "all") return "all"
   if (scope.kind === "postcode") return `postcode:${scope.postcode}`
-  return `area:${scope.placeId}`
+  if (scope.kind === "area") return `area:${scope.placeId}`
+  if (scope.kind === "venue") return `venue:${scope.venueId}`
+  if (scope.focus === "all") return "week:all"
+  if ("postcode" in scope.focus) return `week:${scope.focus.postcode}`
+  return `week:${scope.focus.placeId}`
 }
 
 export function scopeLabel(scope: Scope): string {
   if (scope.kind === "all") return "SW London"
   if (scope.kind === "postcode") return scope.postcode
-  return placeById(scope.placeId)?.name ?? scope.placeId
+  if (scope.kind === "area") return placeById(scope.placeId)?.name ?? scope.placeId
+  if (scope.kind === "venue") return venueById(scope.venueId)?.name ?? "Venue"
+  if (scope.focus === "all") return "This week in SW London"
+  if ("postcode" in scope.focus) return `This week near ${scope.focus.postcode}`
+  return `This week around ${placeById(scope.focus.placeId)?.name ?? "this area"}`
+}
+
+export function gigScopePhrase(scope: Extract<Scope, { kind: "week" | "venue" }>): string {
+  if (scope.kind === "venue") return `at ${venueById(scope.venueId)?.name ?? "this venue"}`
+  if (scope.focus === "all") return "in southwest London in the next 7 days"
+  if ("postcode" in scope.focus) return `near ${scope.focus.postcode} in the next 7 days`
+  return `around ${placeById(scope.focus.placeId)?.name ?? "this area"} in the next 7 days`
 }
 
 export function artistsForScope(scope: Scope): ArtistRecord[] {
   if (scope.kind === "all") return catalogue.artists
   if (scope.kind === "postcode") return artistsInPostcode(scope.postcode)
-  return artistsInPlace(scope.placeId)
+  if (scope.kind === "area") return artistsInPlace(scope.placeId)
+  return []
 }
 
 export function playlistPath(scope: Scope = { kind: "all" }): string {
