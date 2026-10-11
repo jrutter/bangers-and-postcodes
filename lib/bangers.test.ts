@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { artistsInPostcode, catalogue } from "@/lib/catalogue"
 import { chooseArtist, chooseTrack, metricsFromArtist, namesMatch } from "@/lib/names"
 import { authorizeUrl, DEFAULT_REDIRECT_URI, LOGIN_SCOPES, PLAYLIST_SCOPES, safeReturnPath, scopeAllowsTaste } from "@/lib/oauth"
 import { chunk, trackUris } from "@/lib/playlist"
 import { artistsForPostcode, summarize } from "@/lib/stats"
-import { createSpotify } from "@/lib/spotify"
+import { SpotifyError, appendSpotifyFailure, createSpotify, describeSpotifyFailure } from "@/lib/spotify"
 import type { MatchedArtist } from "@/lib/types"
 
 describe("names", () => {
@@ -186,6 +186,188 @@ describe("spotify client", () => {
     const matched = await client.matchArtist(blankArtist("Four Tet"))
     expect(matched.spotify).toBeNull()
   })
+
+  it("adds tracks with POST /playlists/{id}/items in batches of 100", async () => {
+    const uris = Array.from({ length: 101 }, (_, index) => `spotify:track:${index}`)
+    const calls: CapturedRequest[] = []
+    const client = playlistClient(
+      scriptedFetch((url) => {
+        if (url.pathname === "/v1/me/playlists") {
+          return {
+            status: 201,
+            body: {
+              id: "pl",
+              name: "SW15",
+              external_urls: { spotify: "https://open.spotify.com/playlist/pl" },
+            },
+          }
+        }
+        if (url.pathname === "/v1/playlists/pl/items") return { status: 201, body: { snapshot_id: "snap" } }
+        throw new Error(`unexpected ${url.pathname}`)
+      }, calls),
+    )
+    const created = await client.createPlaylist("user-access-token", {
+      name: "SW15",
+      description: "Local artists",
+      isPublic: false,
+      uris,
+    })
+    expect(created).toMatchObject({ id: "pl", url: "https://open.spotify.com/playlist/pl", trackCount: 101, isPublic: false })
+    expect(calls.map((call) => call.url.pathname)).toEqual([
+      "/v1/me/playlists",
+      "/v1/playlists/pl/items",
+      "/v1/playlists/pl/items",
+    ])
+    expect(JSON.parse(String(calls[0].init.body))).toMatchObject({ name: "SW15", public: false })
+    expect(JSON.parse(String(calls[1].init.body)).uris).toHaveLength(100)
+    expect(JSON.parse(String(calls[2].init.body)).uris).toEqual(["spotify:track:100"])
+    expect(calls.some((call) => call.url.pathname.endsWith("/tracks"))).toBe(false)
+  })
+
+  it.each([
+    { status: 401, message: "Invalid access token" },
+    { status: 403, message: "Forbidden" },
+    { status: 400, message: "Missing required field: name" },
+  ])("surfaces playlist create HTTP $status", async ({ status, message }) => {
+    const calls: CapturedRequest[] = []
+    const client = playlistClient(
+      scriptedFetch((url) => {
+        if (url.pathname === "/v1/me/playlists") return { status, body: { error: { status, message } } }
+        throw new Error(`unexpected ${url.pathname}`)
+      }, calls),
+    )
+    const error = await playlistFailure(client)
+    expect(error.status).toBe(status)
+    expect(error.phase).toBe("create")
+    expect(error.spotifyMessage).toBe(message)
+    expect(error.message).toContain(message)
+    expect(error.message).not.toContain("user-access-token")
+    expect(error.message).not.toContain("super-secret-client")
+    expect(calls.map((call) => call.url.pathname)).toEqual(["/v1/me/playlists"])
+  })
+
+  it("reports an add-tracks failure from POST /playlists/{id}/items", async () => {
+    const calls: CapturedRequest[] = []
+    const client = playlistClient(
+      scriptedFetch((url) => {
+        if (url.pathname === "/v1/me/playlists") {
+          return {
+            status: 201,
+            body: {
+              id: "pl123",
+              name: "SW15",
+              external_urls: { spotify: "https://open.spotify.com/playlist/pl123" },
+            },
+          }
+        }
+        if (url.pathname === "/v1/playlists/pl123/items") {
+          return { status: 403, body: { error: { status: 403, message: "Forbidden" } } }
+        }
+        throw new Error(`unexpected ${url.pathname}`)
+      }, calls),
+    )
+    const error = await playlistFailure(client)
+    expect(error.status).toBe(403)
+    expect(error.phase).toBe("items")
+    expect(error.spotifyMessage).toBe("Forbidden")
+    expect(error.playlistUrl).toBe("https://open.spotify.com/playlist/pl123")
+    expect(calls.map((call) => call.url.pathname)).toEqual(["/v1/me/playlists", "/v1/playlists/pl123/items"])
+    expect(JSON.parse(String(calls[1].init.body))).toEqual({ uris: ["spotify:track:one"] })
+    expect(calls.some((call) => call.url.pathname.endsWith("/tracks"))).toBe(false)
+    expect(error.message).not.toContain("user-access-token")
+  })
+
+  it("reports token exchange failure and logs the upstream body without secrets", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const leaked = `Bearer BQA${"a".repeat(50)}`
+    const calls: CapturedRequest[] = []
+    try {
+      const client = createSpotify({
+        fetch: scriptedFetch((url) => {
+          if (url.host === "accounts.spotify.com") {
+            return {
+              status: 400,
+              body: {
+                error: "invalid_grant",
+                error_description: `Invalid authorization code ${leaked}`,
+                client_secret: "super-secret-client",
+                access_token: "should-not-log-this-token-value-aaaaaaaaaaaaaaaa",
+              },
+            }
+          }
+          throw new Error(`unexpected ${url}`)
+        }, calls),
+        env: { SPOTIFY_CLIENT_ID: "id", SPOTIFY_CLIENT_SECRET: "super-secret-client" },
+      })
+      let caught: unknown
+      try {
+        await client.exchangeCode("auth-code")
+      } catch (error) {
+        caught = error
+      }
+      expect(caught).toBeInstanceOf(SpotifyError)
+      const error = caught as SpotifyError
+      expect(error.status).toBe(400)
+      expect(error.phase).toBe("token")
+      expect(error.spotifyMessage).toContain("Invalid authorization code")
+      expect(error.spotifyMessage).toContain("Bearer [redacted]")
+      expect(error.spotifyMessage).not.toContain("BQAaa")
+      expect(error.message).not.toContain("super-secret-client")
+      expect(error.message).not.toContain("BQAaa")
+      expect(calls[0]?.url.pathname).toBe("/api/token")
+      const logged = JSON.stringify(spy.mock.calls)
+      expect(logged).toContain("Invalid authorization code")
+      expect(logged).toContain("400")
+      expect(logged).toContain("[redacted]")
+      expect(logged).not.toContain("super-secret-client")
+      expect(logged).not.toContain("BQAaa")
+      expect(logged).not.toContain("should-not-log-this-token")
+    } finally {
+      spy.mockRestore()
+    }
+  })
+})
+
+describe("spotify failure copy", () => {
+  it("names the status and Spotify message without blaming the redirect URI", () => {
+    expect(describeSpotifyFailure({ status: "403", detail: "Forbidden", phase: "create" })).toBe(
+      "Spotify returned 403: Forbidden.",
+    )
+    expect(describeSpotifyFailure({ status: "403", detail: "Forbidden", phase: "items" })).toBe(
+      "Spotify returned 403: Forbidden. The playlist was created, but the tracks were not added.",
+    )
+    expect(describeSpotifyFailure({ status: "401", detail: "Invalid access token", phase: "token" })).toBe(
+      "Spotify returned 401: Invalid access token. Log in with Spotify again.",
+    )
+    expect(describeSpotifyFailure({ status: "400", detail: "Missing required field: name", phase: "create" })).toBe(
+      "Spotify returned 400: Missing required field: name.",
+    )
+    const leaked = describeSpotifyFailure({ status: "400", detail: `Bearer ${"B".repeat(50)}`, phase: "token" })
+    expect(leaked).toContain("Bearer [redacted]")
+    expect(leaked).not.toContain("BBBBB")
+    expect(describeSpotifyFailure({})).toBe("Spotify could not finish that request. Try again.")
+    expect(describeSpotifyFailure({})).not.toMatch(/redirect URI/i)
+  })
+
+  it("keeps an existing scope and a validated playlist link on the failure redirect", () => {
+    const error = new SpotifyError("failed", {
+      status: 403,
+      spotifyMessage: `Forbidden Bearer ${"C".repeat(40)}`,
+      phase: "items",
+      playlistUrl: "https://open.spotify.com/playlist/pl123",
+    })
+    const location = appendSpotifyFailure("/playlist?scope=postcode%3ASW15", error)
+    const params = new URL(location, "http://local.invalid").searchParams
+    expect(params.get("scope")).toBe("postcode:SW15")
+    expect(params.get("error")).toBe("spotify")
+    expect(params.get("spotifyStatus")).toBe("403")
+    expect(params.get("spotifyPhase")).toBe("items")
+    expect(params.get("spotifyDetail")).toContain("Forbidden")
+    expect(params.get("spotifyDetail")).toContain("[redacted]")
+    expect(params.get("spotifyDetail")).not.toContain("CCCC")
+    expect(params.get("spotifyPlaylist")).toBe("https://open.spotify.com/playlist/pl123")
+    expect(location).not.toContain("super-secret")
+  })
 })
 
 function profile(name: string, id: string, popularity: number, uri: string): MatchedArtist {
@@ -217,6 +399,47 @@ function blankArtist(name: string) {
     tags: [],
     locality: [],
   }
+}
+
+type CapturedRequest = { url: URL; init: RequestInit }
+
+function playlistClient(fetchImpl: typeof fetch) {
+  return createSpotify({
+    fetch: fetchImpl,
+    env: { SPOTIFY_CLIENT_ID: "id", SPOTIFY_CLIENT_SECRET: "super-secret-client" },
+  })
+}
+
+async function playlistFailure(client: ReturnType<typeof createSpotify>): Promise<SpotifyError> {
+  try {
+    await client.createPlaylist("user-access-token", {
+      name: "SW15",
+      description: "Local artists",
+      isPublic: false,
+      uris: ["spotify:track:one"],
+    })
+  } catch (error) {
+    expect(error).toBeInstanceOf(SpotifyError)
+    return error as SpotifyError
+  }
+  throw new Error("expected playlist create to fail")
+}
+
+function scriptedFetch(
+  handler: (url: URL, init: RequestInit) => { status?: number; body: unknown },
+  calls: CapturedRequest[] = [],
+): typeof fetch {
+  return (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const raw = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url
+    const url = new URL(raw)
+    const requestInit = init ?? {}
+    calls.push({ url, init: requestInit })
+    const result = handler(url, requestInit)
+    return new Response(JSON.stringify(result.body), {
+      status: result.status ?? 200,
+      headers: { "Content-Type": "application/json" },
+    })
+  }) as typeof fetch
 }
 
 function mockFetch(handler: (url: URL) => unknown): typeof fetch {

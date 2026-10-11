@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 import { safeReturnPath } from "@/lib/oauth"
 import { COOKIE, applyTokenCookies, cookieOptions } from "@/lib/session"
-import { spotifyClient } from "@/lib/spotify"
+import { SpotifyError, appendSpotifyFailure, spotifyClient } from "@/lib/spotify"
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
@@ -30,7 +30,14 @@ export async function GET(request: NextRequest) {
     applyTokenCookies(response.cookies, bundle)
     clearOauth(response)
     return response
-  } catch {
+  } catch (error) {
+    if (error instanceof SpotifyError) {
+      const destination = new URL(appendSpotifyFailure(returnTo, error), request.url)
+      const response = NextResponse.redirect(destination)
+      clearOauth(response)
+      return response
+    }
+    console.error("[spotify] token exchange failed", error instanceof Error ? error.message : "unknown")
     return fail("spotify")
   }
 }
