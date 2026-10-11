@@ -184,6 +184,15 @@ export function createSpotify(options?: { fetch?: FetchLike; env?: SpotifyEnv })
         trackCount: input.uris.length,
       }
     },
+    async profileId(accessToken: string): Promise<string | null> {
+      try {
+        const payload = await apiSend(fetchImpl, "GET", "/me", { token: accessToken })
+        const id = payload.id
+        return typeof id === "string" && id.trim() ? id.trim() : null
+      } catch {
+        return null
+      }
+    },
     async accessToken(): Promise<string> {
       if (token && token.expiresAt > Date.now() + 30_000) return token.value
       const id = clientId()

@@ -197,7 +197,14 @@ function ArtistGigs({ artistName, gigs }: { artistName: string; gigs: TaggedGig[
             {gig.ticketUrl ? (
               <>
                 {" · "}
-                <a className="underline decoration-border underline-offset-4 hover:text-link-hover" href={gig.ticketUrl}>
+                <a
+                  className="underline decoration-border underline-offset-4 hover:text-link-hover"
+                  href={gig.ticketUrl}
+                  data-analytics="gig-ticket"
+                  data-artist={artistName}
+                  data-venue={gig.venueName}
+                  data-area={gig.postcode ?? ""}
+                >
                   Tickets
                 </a>
               </>
@@ -222,7 +229,13 @@ function SpotifyLine({ artist, trackUrl }: { artist: MatchedArtist; trackUrl: st
     <div className="space-y-1 text-sm">
       <p>
         {artist.spotify.url ? (
-          <a className="spotify-link" href={artist.spotify.url}>
+          <a
+            className="spotify-link"
+            href={artist.spotify.url}
+            data-analytics="spotify-open"
+            data-artist={artist.spotify.name || artist.name}
+            data-kind="artist"
+          >
             {artist.spotify.name || artist.name} on Spotify
           </a>
         ) : (
@@ -236,7 +249,13 @@ function SpotifyLine({ artist, trackUrl }: { artist: MatchedArtist; trackUrl: st
         <p>
           Track:{" "}
           {trackUrl ? (
-            <a className="spotify-link" href={trackUrl}>
+            <a
+              className="spotify-link"
+              href={trackUrl}
+              data-analytics="spotify-open"
+              data-artist={artist.name}
+              data-kind="track"
+            >
               {track.name}
             </a>
           ) : (

@@ -187,6 +187,27 @@ describe("spotify client", () => {
     expect(matched.spotify).toBeNull()
   })
 
+  it("reads only the Spotify user id from the profile", async () => {
+    const fetchImpl = mockFetch((url) => {
+      if (url.pathname === "/v1/me") return { id: "listener-1", email: "person@example.com", display_name: "Ada" }
+      throw new Error(`unexpected ${url}`)
+    })
+    const client = createSpotify({
+      fetch: fetchImpl,
+      env: { SPOTIFY_CLIENT_ID: "id", SPOTIFY_CLIENT_SECRET: "secret" },
+    })
+    await expect(client.profileId("access-token")).resolves.toBe("listener-1")
+  })
+
+  it("returns null when the Spotify profile lookup fails", async () => {
+    const fetchImpl = (async () => new Response("nope", { status: 500 })) as typeof fetch
+    const client = createSpotify({
+      fetch: fetchImpl,
+      env: { SPOTIFY_CLIENT_ID: "id", SPOTIFY_CLIENT_SECRET: "secret" },
+    })
+    await expect(client.profileId("access-token")).resolves.toBeNull()
+  })
+
   it("adds tracks with POST /playlists/{id}/items in batches of 100", async () => {
     const uris = Array.from({ length: 101 }, (_, index) => `spotify:track:${index}`)
     const calls: CapturedRequest[] = []

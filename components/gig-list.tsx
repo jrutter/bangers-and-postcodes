@@ -57,7 +57,14 @@ function GigCard({ gig, links, reason }: { gig: TaggedGig; links: SpotifyLinkMap
         ) : null}
         {gig.ticketUrl ? (
           <p className="text-sm">
-            <a className="font-medium underline decoration-border underline-offset-4 hover:text-link-hover" href={gig.ticketUrl}>
+            <a
+              className="font-medium underline decoration-border underline-offset-4 hover:text-link-hover"
+              href={gig.ticketUrl}
+              data-analytics="gig-ticket"
+              data-artist={names.join(", ")}
+              data-venue={gig.venueName}
+              data-area={gig.postcode ?? ""}
+            >
               Tickets
             </a>
           </p>
