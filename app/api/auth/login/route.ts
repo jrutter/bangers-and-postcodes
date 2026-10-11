@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto"
 import { connection } from "next/server"
 import { NextRequest, NextResponse } from "next/server"
 
-import { authorizeUrl, envValue, safeReturnPath } from "@/lib/oauth"
+import { authorizeUrl, envValue, LOGIN_SCOPES, safeReturnPath } from "@/lib/oauth"
 import { COOKIE, cookieOptions } from "@/lib/session"
 import { spotifyClient } from "@/lib/spotify"
 
@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     clientId: envValue("SPOTIFY_CLIENT_ID"),
     redirectUri: client.redirectUri(),
     state,
+    scopes: LOGIN_SCOPES,
   })
   const response = NextResponse.redirect(destination)
   response.cookies.set(COOKIE.state, state, cookieOptions(60 * 10))

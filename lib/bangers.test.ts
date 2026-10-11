@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { artistsInPostcode, catalogue } from "@/lib/catalogue"
 import { chooseArtist, chooseTrack, metricsFromArtist, namesMatch } from "@/lib/names"
-import { authorizeUrl, DEFAULT_REDIRECT_URI, safeReturnPath } from "@/lib/oauth"
+import { authorizeUrl, DEFAULT_REDIRECT_URI, LOGIN_SCOPES, PLAYLIST_SCOPES, safeReturnPath, scopeAllowsTaste } from "@/lib/oauth"
 import { chunk, trackUris } from "@/lib/playlist"
 import { artistsForPostcode, summarize } from "@/lib/stats"
 import { createSpotify } from "@/lib/spotify"
@@ -79,6 +79,15 @@ describe("oauth", () => {
     expect(parsed.searchParams.get("redirect_uri")).toBe("http://127.0.0.1:3000/api/auth/callback")
     expect(parsed.searchParams.get("state")).toBe("state-123")
     expect(parsed.searchParams.get("scope")).toBe("playlist-modify-private playlist-modify-public")
+    expect(PLAYLIST_SCOPES).toEqual(["playlist-modify-private", "playlist-modify-public"])
+    expect(LOGIN_SCOPES).toEqual([
+      "playlist-modify-private",
+      "playlist-modify-public",
+      "user-top-read",
+      "user-follow-read",
+    ])
+    expect(scopeAllowsTaste("playlist-modify-private playlist-modify-public")).toBe(false)
+    expect(scopeAllowsTaste(LOGIN_SCOPES.join(" "))).toBe(true)
   })
 
   it("rejects off-site return paths", () => {

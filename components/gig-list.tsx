@@ -7,19 +7,27 @@ import { lookupLinks, type SpotifyLinkMap } from "@/lib/gigs/spotify"
 import type { TaggedGig } from "@/lib/gigs/types"
 import { venuePath } from "@/lib/venues"
 
-export function GigList({ gigs, links }: { gigs: TaggedGig[]; links: SpotifyLinkMap }) {
+export function GigList({
+  gigs,
+  links,
+  reasons,
+}: {
+  gigs: TaggedGig[]
+  links: SpotifyLinkMap
+  reasons?: Record<string, string>
+}) {
   return (
     <ul className="grid gap-3">
       {gigs.map((gig) => (
         <li key={gig.id}>
-          <GigCard gig={gig} links={links} />
+          <GigCard gig={gig} links={links} reason={reasons?.[gig.id]} />
         </li>
       ))}
     </ul>
   )
 }
 
-function GigCard({ gig, links }: { gig: TaggedGig; links: SpotifyLinkMap }) {
+function GigCard({ gig, links, reason }: { gig: TaggedGig; links: SpotifyLinkMap; reason?: string }) {
   const names = gig.artistNames.length > 0 ? gig.artistNames : [gig.title]
   const title = names.join(", ")
   const showEventName = gig.title && gig.title !== title && gig.title !== gig.venueName
@@ -32,6 +40,7 @@ function GigCard({ gig, links }: { gig: TaggedGig; links: SpotifyLinkMap }) {
         {showEventName ? <p className="text-sm text-muted-foreground">{gig.title}</p> : null}
       </CardHeader>
       <CardContent className="space-y-3">
+        {reason ? <p className="text-sm font-medium text-primary">{reason}</p> : null}
         <p className="text-sm">
           <time dateTime={gig.startsAt ?? gig.date ?? undefined}>{formatGigWhen(gig)}</time>
           {" · "}

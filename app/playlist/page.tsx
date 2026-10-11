@@ -14,7 +14,8 @@ export default function PlaylistPage(props: PageProps<"/playlist">) {
         <p className="text-base leading-7 text-muted-foreground">{TAGLINE}</p>
         <p className="text-sm leading-6 text-muted-foreground">
           Log in with Spotify to create the playlist in your account. It is private unless you tick public. One track
-          per Spotify artist, aliases collapsed.
+          per Spotify artist, aliases collapsed. The same login can rank For you from your top artists, recent
+          tracks, and follows. That taste stays in the session and is not saved on the server.
         </p>
       </header>
       <Suspense fallback={<p className="text-sm text-muted-foreground">Checking your Spotify login…</p>}>
