@@ -11,6 +11,7 @@ node_modules/
 out/
 .vercel/
 *.tsbuildinfo
+public/maplibre-gl-worker.mjs
 
 .env
 .env*.local

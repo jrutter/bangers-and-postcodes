@@ -21,6 +21,9 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
             Bangers <span className="text-primary">&</span> Postcodes
           </Link>
           <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm">
+            <Link href="/map" className="text-muted-foreground hover:text-foreground">
+              Map
+            </Link>
             <Link href="/gigs" className="text-muted-foreground hover:text-foreground">
               Gigs
             </Link>
