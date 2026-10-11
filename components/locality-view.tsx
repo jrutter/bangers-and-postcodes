@@ -1,10 +1,12 @@
 import { Suspense } from "react"
 
 import { ArtistBoard } from "@/components/artist-board"
+import { NewsletterSignup } from "@/components/newsletter-signup"
 import { LinkButton } from "@/components/link-button"
 import { LocalityBody } from "@/components/locality-body"
 import { Badge } from "@/components/ui/badge"
 import { areaPath, playlistPath, postcodePath, type Scope } from "@/lib/catalogue"
+import { defaultAreasForScope } from "@/lib/newsletter/areas"
 import type { GigSelection } from "@/lib/gigs/types"
 import type { ArtistRecord, PlaceRecord } from "@/lib/types"
 
@@ -49,6 +51,9 @@ export function LocalityView({
         ) : null}
         <LinkButton href={playlistPath(scope)}>Make a playlist</LinkButton>
       </header>
+      <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the weekly email signup…</p>}>
+        <NewsletterSignup placement="panel" defaultAreas={defaultAreasForScope(scope)} />
+      </Suspense>
       <Suspense
         fallback={
           <div className="space-y-6">
