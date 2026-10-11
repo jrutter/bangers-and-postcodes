@@ -13,7 +13,7 @@ export function TastePrompt({ returnTo, mode }: { returnTo: string; mode: "anony
   return (
     <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm leading-6 text-muted-foreground">
       {copy}{" "}
-      <Link href={href} className="font-medium text-foreground underline decoration-border underline-offset-4">
+      <Link href={href} className="spotify-link">
         Log in with Spotify
       </Link>
     </p>

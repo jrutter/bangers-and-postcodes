@@ -40,12 +40,12 @@ function GigCard({ gig, links, reason }: { gig: TaggedGig; links: SpotifyLinkMap
         {showEventName ? <p className="text-sm text-muted-foreground">{gig.title}</p> : null}
       </CardHeader>
       <CardContent className="space-y-3">
-        {reason ? <p className="text-sm font-medium text-primary">{reason}</p> : null}
+        {reason ? <p className="text-sm font-medium text-accent">{reason}</p> : null}
         <p className="text-sm">
           <time dateTime={gig.startsAt ?? gig.date ?? undefined}>{formatGigWhen(gig)}</time>
           {" · "}
           {gig.venueId ? (
-            <Link href={venuePath(gig.venueId)} className="underline decoration-border underline-offset-4 hover:text-primary">
+            <Link href={venuePath(gig.venueId)} className="underline decoration-border underline-offset-4 hover:text-link-hover">
               {gig.venueName}
             </Link>
           ) : (
@@ -57,7 +57,7 @@ function GigCard({ gig, links, reason }: { gig: TaggedGig; links: SpotifyLinkMap
         ) : null}
         {gig.ticketUrl ? (
           <p className="text-sm">
-            <a className="font-medium underline decoration-border underline-offset-4 hover:text-primary" href={gig.ticketUrl}>
+            <a className="font-medium underline decoration-border underline-offset-4 hover:text-link-hover" href={gig.ticketUrl}>
               Tickets
             </a>
           </p>

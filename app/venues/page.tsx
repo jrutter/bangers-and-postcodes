@@ -25,7 +25,7 @@ export default function VenuesPage(props: PageProps<"/venues">) {
   return (
     <div className="space-y-8">
       <header className="max-w-3xl space-y-4">
-        <p className="text-sm font-medium tracking-[0.16em] text-primary uppercase">Southwest London</p>
+        <p className="text-sm font-medium tracking-[0.16em] text-info uppercase">Southwest London</p>
         <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-5xl">Venues</h1>
         <p className="text-base leading-7 text-muted-foreground">
           A short list of rooms that put music on, from Barnes to Wimbledon and out to Twickenham. Pryzm Kingston, at
@@ -102,7 +102,7 @@ function VenueCard({ venue, reason }: { venue: Venue; reason: string | null }) {
     <Card>
       <CardHeader>
         <CardTitle>
-          <Link href={venuePath(venue.id)} className="hover:text-primary">
+          <Link href={venuePath(venue.id)} className="underline decoration-border underline-offset-4 hover:text-link-hover">
             {venue.name}
           </Link>
         </CardTitle>
@@ -111,7 +111,7 @@ function VenueCard({ venue, reason }: { venue: Venue; reason: string | null }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {reason ? <p className="text-sm font-medium text-primary">{reason}</p> : null}
+        {reason ? <p className="text-sm font-medium text-accent">{reason}</p> : null}
         <p className="text-sm leading-6 text-muted-foreground">{venue.note}</p>
         <div className="flex flex-wrap gap-3 text-sm">
           {venue.postcodes.map((code) =>

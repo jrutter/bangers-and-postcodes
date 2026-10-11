@@ -84,7 +84,7 @@ export function ArtistBoard({
           </p>
           <ol className="grid gap-2 sm:grid-cols-2">
             {summary.top.map((artist, index) => (
-              <li key={`${artist.mbid ?? artist.name}-${index}`} className="rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10">
+              <li key={`${artist.mbid ?? artist.name}-${index}`} className="rounded-xl bg-card px-4 py-3 ring-1 ring-border">
                 <p className="font-medium">
                   <span className="mr-2 text-muted-foreground">{index + 1}</span>
                   {artist.name}
@@ -164,7 +164,7 @@ function ArtistCard({ artist, showSpotify, gigs }: { artist: MatchedArtist; show
         </ul>
         {artist.mbid ? (
           <p className="text-sm">
-            <a className="underline decoration-border underline-offset-4 hover:text-primary" href={`https://musicbrainz.org/artist/${artist.mbid}`}>
+            <a className="underline decoration-border underline-offset-4 hover:text-link-hover" href={`https://musicbrainz.org/artist/${artist.mbid}`}>
               MusicBrainz
             </a>
           </p>
@@ -188,7 +188,7 @@ function ArtistGigs({ artistName, gigs }: { artistName: string; gigs: TaggedGig[
             <time dateTime={gig.startsAt ?? gig.date ?? undefined}>{formatGigWhen(gig)}</time>
             {" · "}
             {gig.venueId ? (
-              <Link href={venuePath(gig.venueId)} className="underline decoration-border underline-offset-4 hover:text-primary">
+              <Link href={venuePath(gig.venueId)} className="underline decoration-border underline-offset-4 hover:text-link-hover">
                 {gig.venueName}
               </Link>
             ) : (
@@ -197,7 +197,7 @@ function ArtistGigs({ artistName, gigs }: { artistName: string; gigs: TaggedGig[
             {gig.ticketUrl ? (
               <>
                 {" · "}
-                <a className="underline decoration-border underline-offset-4 hover:text-primary" href={gig.ticketUrl}>
+                <a className="underline decoration-border underline-offset-4 hover:text-link-hover" href={gig.ticketUrl}>
                   Tickets
                 </a>
               </>
@@ -222,7 +222,7 @@ function SpotifyLine({ artist, trackUrl }: { artist: MatchedArtist; trackUrl: st
     <div className="space-y-1 text-sm">
       <p>
         {artist.spotify.url ? (
-          <a className="font-medium underline decoration-border underline-offset-4 hover:text-primary" href={artist.spotify.url}>
+          <a className="spotify-link" href={artist.spotify.url}>
             {artist.spotify.name || artist.name} on Spotify
           </a>
         ) : (
@@ -236,7 +236,7 @@ function SpotifyLine({ artist, trackUrl }: { artist: MatchedArtist; trackUrl: st
         <p>
           Track:{" "}
           {trackUrl ? (
-            <a className="underline decoration-border underline-offset-4 hover:text-primary" href={trackUrl}>
+            <a className="spotify-link" href={trackUrl}>
               {track.name}
             </a>
           ) : (
@@ -258,7 +258,7 @@ function SpotifyLine({ artist, trackUrl }: { artist: MatchedArtist; trackUrl: st
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10">
+    <div className="rounded-xl bg-card px-4 py-3 ring-1 ring-border">
       <dt className="text-xs tracking-wide text-muted-foreground uppercase">{label}</dt>
       <dd className="mt-1 font-heading text-2xl font-semibold">{value}</dd>
     </div>
