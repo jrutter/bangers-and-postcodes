@@ -4,7 +4,9 @@ import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
 import { GigSection } from "@/components/gig-section"
+import { Breadcrumbs } from "@/components/breadcrumbs"
 import { areaPath, knownPostcode, placeById, postcodePath } from "@/lib/catalogue"
+import { regionForPostcode, regionPath } from "@/lib/regions"
 import { venueById, venueTypeLabel, venues } from "@/lib/venues"
 
 export const maxDuration = 60
@@ -23,9 +25,17 @@ export default async function VenuePage(props: PageProps<"/venue/[venue]">) {
   const { venue: venueId } = await props.params
   const venue = venueById(venueId)
   if (!venue) notFound()
+  const region = regionForPostcode(venue.postcodeDistrict || venue.postcode)
   return (
     <article className="space-y-10">
       <header className="max-w-3xl space-y-4">
+        <Breadcrumbs
+          items={[
+            { href: "/", label: "London" },
+            ...(region ? [{ href: regionPath(region.id), label: region.name }] : []),
+            { label: venue.name },
+          ]}
+        />
         <p className="text-sm font-medium tracking-[0.16em] text-info uppercase">
           {[venueTypeLabel(venue.type), venue.grassroots ? "Grassroots" : null, venue.borough].filter(Boolean).join(" · ")}
         </p>

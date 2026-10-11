@@ -1,5 +1,6 @@
 "use client"
 
+import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl"
 import "maplibre-gl/dist/maplibre-gl.css"
@@ -7,6 +8,7 @@ import "maplibre-gl/dist/maplibre-gl.css"
 import { LinkButton } from "@/components/link-button"
 import type { MapDistrict, MapModel, MapVenuePin } from "@/lib/map-model"
 import { MAP_ATTRIBUTION, MAP_STYLE_URL } from "@/lib/map-style"
+import { regionForPostcode, regions, regionPath } from "@/lib/regions"
 import boundaries from "@/data/postcode-districts.json"
 
 type Selection = { kind: "district"; id: string } | { kind: "venue"; id: string }
@@ -16,7 +18,7 @@ type BoundaryCollection = {
   features: {
     type: "Feature"
     id: string
-    properties: { postcode: string }
+    properties: { postcode: string; highlighted?: number; inFocus?: number }
     geometry: { type: "Polygon"; coordinates: number[][][] }
   }[]
 }
@@ -26,6 +28,9 @@ export function SouthwestMap({ model }: { model: MapModel }) {
   const mapRef = useRef<MapLibreMap | null>(null)
   const modelRef = useRef(model)
   const venueSelection = useRef<string | null>(null)
+  const focusRef = useRef(model.focusRegionId)
+  const pathname = usePathname()
+  const router = useRouter()
   modelRef.current = model
   const [selection, setSelection] = useState<Selection | null>(null)
   const [mapProblem, setMapProblem] = useState<string | null>(null)
@@ -71,6 +76,8 @@ export function SouthwestMap({ model }: { model: MapModel }) {
             "fill-color": ["case", ["==", ["get", "highlighted"], 1], colors.highlight, colors.fill],
             "fill-opacity": [
               "case",
+              ["==", ["get", "inFocus"], 0],
+              0.04,
               ["boolean", ["feature-state", "selected"], false],
               0.5,
               ["==", ["get", "highlighted"], 1],
@@ -167,7 +174,14 @@ export function SouthwestMap({ model }: { model: MapModel }) {
           const onVenue = created.queryRenderedFeatures(event.point, { layers: ["venue-points", "venue-clusters"] })
           if (onVenue.length > 0) return
           const postcode = event.features?.[0]?.properties?.postcode
-          if (typeof postcode === "string") setSelection({ kind: "district", id: postcode })
+          if (typeof postcode !== "string") return
+          const region = regionForPostcode(postcode)
+          const focus = modelRef.current.focusRegionId
+          if (!region || focus !== region.id) {
+            if (region) openRegion(region.id)
+            return
+          }
+          setSelection({ kind: "district", id: postcode })
         })
         created.on("click", "venue-clusters", (event) => {
           const feature = event.features?.[0]
@@ -196,8 +210,11 @@ export function SouthwestMap({ model }: { model: MapModel }) {
           })
         }
         const bounds = new maplibregl.LngLatBounds()
-        for (const district of current.districts) bounds.extend([district.longitude, district.latitude])
-        created.fitBounds(bounds, { padding: 36, maxZoom: 13, duration: 0 })
+        const focused = current.focusRegionId
+          ? current.districts.filter((district) => regionForPostcode(district.postcode)?.id === current.focusRegionId)
+          : current.districts
+        for (const district of focused) bounds.extend([district.longitude, district.latitude])
+        if (!bounds.isEmpty()) created.fitBounds(bounds, { padding: 36, maxZoom: 12, duration: 0 })
         setMapProblem(null)
       })
       created.on("error", (event) => {
@@ -220,7 +237,25 @@ export function SouthwestMap({ model }: { model: MapModel }) {
     const venues = map?.getSource("venues") as GeoJSONSource | undefined
     if (districts) districts.setData(districtCollection(model))
     if (venues) venues.setData(venueCollection(model))
+    if (!map || !districts) return
+    if (focusRef.current === model.focusRegionId) return
+    focusRef.current = model.focusRegionId
+    fitMap(map, model)
   }, [model])
+
+  function openRegion(id: string) {
+    if (pathname === "/map") {
+      const params = new URLSearchParams(window.location.search)
+      params.set("region", id)
+      router.replace(`/map?${params.toString()}`)
+      return
+    }
+    if (pathname.startsWith("/region/")) {
+      router.push(regionPath(id))
+      return
+    }
+    router.push(`/map?region=${id}`)
+  }
 
   useEffect(() => {
     const map = mapRef.current
@@ -243,6 +278,38 @@ export function SouthwestMap({ model }: { model: MapModel }) {
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="min-w-0 space-y-3">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <button
+            type="button"
+            onClick={() => {
+              const params = new URLSearchParams(window.location.search)
+              params.delete("region")
+              const query = params.toString()
+              router.replace(query ? `/map?${query}` : "/map")
+            }}
+            className={
+              model.focusRegionId
+                ? "shrink-0 rounded-full bg-card px-3 py-1 text-sm ring-1 ring-border"
+                : "shrink-0 rounded-full bg-foreground px-3 py-1 text-sm text-background"
+            }
+          >
+            All London
+          </button>
+          {regions().map((region) => (
+            <button
+              key={region.id}
+              type="button"
+              onClick={() => openRegion(region.id)}
+              className={
+                model.focusRegionId === region.id
+                  ? "shrink-0 rounded-full bg-foreground px-3 py-1 text-sm text-background"
+                  : "shrink-0 rounded-full bg-card px-3 py-1 text-sm ring-1 ring-border"
+              }
+            >
+              {region.name.replace(" London", "")}
+            </button>
+          ))}
+        </div>
         <div ref={container} className="h-[58vh] min-h-72 w-full overflow-hidden rounded-xl bg-muted ring-1 ring-border sm:h-[68vh]" />
         {mapProblem ? (
           <p className="text-sm text-muted-foreground">
@@ -302,8 +369,8 @@ export function SouthwestMap({ model }: { model: MapModel }) {
           <div className="space-y-2">
             <h2 className="font-heading text-2xl font-semibold tracking-tight">Choose a place</h2>
             <p className="text-sm leading-6 text-muted-foreground">
-              Tap a postcode district or a venue pin. Pins group together until you zoom in. A district opens its artists,
-              venues, and upcoming gigs.
+              Tap a district to open its region, then tap a district again for artists, venues, and gigs.
+              Pins group together until you zoom in.
               {model.personalised ? " Red districts and pins match your Spotify taste." : ""}
             </p>
           </div>
@@ -498,10 +565,35 @@ function districtCollection(model: MapModel): BoundaryCollection {
       properties: {
         postcode: feature.properties.postcode,
         highlighted: highlighted.has(feature.properties.postcode) ? 1 : 0,
+        inFocus: !model.focusRegionId || regionForPostcode(feature.properties.postcode)?.id === model.focusRegionId ? 1 : 0,
       },
       geometry: feature.geometry,
     })),
   }
+}
+
+function fitMap(map: MapLibreMap, model: MapModel) {
+  const focused = model.focusRegionId
+    ? model.districts.filter((district) => regionForPostcode(district.postcode)?.id === model.focusRegionId)
+    : model.districts
+  if (focused.length === 0) return
+  let west = Infinity
+  let south = Infinity
+  let east = -Infinity
+  let north = -Infinity
+  for (const district of focused) {
+    west = Math.min(west, district.longitude)
+    east = Math.max(east, district.longitude)
+    south = Math.min(south, district.latitude)
+    north = Math.max(north, district.latitude)
+  }
+  map.fitBounds(
+    [
+      [west, south],
+      [east, north],
+    ],
+    { padding: 36, maxZoom: 12, duration: 400 },
+  )
 }
 
 function venueCollection(model: MapModel) {

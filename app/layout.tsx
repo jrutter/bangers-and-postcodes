@@ -17,11 +17,19 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.SITE_URL || "https://bangers-and-postcodes.vercel.app"),
   title: {
     default: "Bangers & Postcodes",
     template: "%s · Bangers & Postcodes",
   },
   description: TAGLINE,
+  openGraph: {
+    title: "Bangers & Postcodes",
+    description: TAGLINE,
+    siteName: "Bangers & Postcodes",
+    locale: "en_GB",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

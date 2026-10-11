@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-import { postcodeArea } from "@/lib/districts"
+import { regionForPostcode, regionPath } from "@/lib/regions"
 import type { MapDistrict, MapModel, MapVenuePin } from "@/lib/map-model"
 
 export function MapIndex({ model }: { model: MapModel }) {
@@ -14,9 +14,13 @@ export function MapIndex({ model }: { model: MapModel }) {
         </p>
         <div className="space-y-2">
           {groups.map((group) => (
-            <details key={group.area} open={group.area === "SW"} className="space-y-2">
+            <details key={group.regionId} className="space-y-2">
               <summary className="cursor-pointer text-sm font-medium">
-                {group.area} · {group.rows.length} districts
+                <Link href={regionPath(group.regionId)} className="underline decoration-border underline-offset-4">
+                  {group.name}
+                </Link>
+                {" · "}
+                {group.rows.length} districts
               </summary>
               <ul className="space-y-2 pt-2 text-sm">
                 {group.rows.map((district) => (
@@ -79,14 +83,15 @@ export function MapIndex({ model }: { model: MapModel }) {
 }
 
 function groupDistricts(districts: MapDistrict[]) {
-  const groups = new Map<string, MapDistrict[]>()
+  const groups = new Map<string, { regionId: string; name: string; rows: MapDistrict[] }>()
   for (const district of districts) {
-    const area = postcodeArea(district.postcode)
-    const list = groups.get(area) ?? []
-    list.push(district)
-    groups.set(area, list)
+    const region = regionForPostcode(district.postcode)
+    const regionId = region?.id ?? "london"
+    const current = groups.get(regionId) ?? { regionId, name: region?.name ?? "London", rows: [] }
+    current.rows.push(district)
+    groups.set(regionId, current)
   }
-  return [...groups.entries()].map(([area, rows]) => ({ area, rows }))
+  return [...groups.values()]
 }
 
 function groupVenuePins(venues: MapVenuePin[]) {

@@ -4,6 +4,8 @@ import { notFound } from "next/navigation"
 import { LocalityView, placeLinks } from "@/components/locality-view"
 import { areasInPostcode, artistsInPostcode, knownPostcode, postcodes } from "@/lib/catalogue"
 import { parseEra } from "@/lib/era"
+import { areaInfo, regionPath } from "@/lib/regions"
+import { filterVenues, venues } from "@/lib/venues"
 
 export const maxDuration = 60
 
@@ -27,11 +29,27 @@ export default async function PostcodePage(props: PageProps<"/postcode/[postcode
   const artists = artistsInPostcode(code)
   const names = areas.map((place) => place.name).join(", ")
   const page = Number(firstQuery(query.page) || "1")
+  const info = areaInfo(code)
+  const region = info?.region
   return (
     <LocalityView
       era={parseEra(firstQuery(query.era))}
       page={Number.isFinite(page) ? page : 1}
-      kicker="Postcode"
+      crumbs={[
+        { href: "/", label: "London" },
+        ...(region ? [{ href: regionPath(region.id), label: region.name }] : []),
+        { label: code },
+      ]}
+      visitor={
+        info
+          ? {
+              knownFor: `${region?.knownFor ?? ""} ${info.area.knownFor}`.trim(),
+              gettingThere: info.area.gettingThere,
+            }
+          : undefined
+      }
+      rooms={filterVenues(venues(), { area: code })}
+      kicker={region?.name ?? "Postcode"}
       title={code}
       note={
         names

@@ -3,6 +3,7 @@
 import { useActionState } from "react"
 import { useFormStatus } from "react-dom"
 
+import { AreaChecklist } from "@/components/area-checklist"
 import { updateAreasAction } from "@/app/newsletter/preferences/actions"
 import { Button } from "@/components/ui/button"
 
@@ -13,7 +14,7 @@ export function PreferenceForm({
   status,
 }: {
   token: string
-  options: { code: string; label: string }[]
+  options: { code: string; label: string; regionName?: string }[]
   selected: string[]
   status: "confirmed" | "pending" | "unsubscribed"
 }) {
@@ -29,17 +30,8 @@ export function PreferenceForm({
       <input type="hidden" name="token" value={token} />
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">Areas</legend>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {options.map((option) => (
-            <label key={option.code} className="flex items-start gap-2 rounded-lg bg-card px-3 py-2 text-sm ring-1 ring-border">
-              <input type="checkbox" name="areas" value={option.code} defaultChecked={selected.includes(option.code)} className="mt-1 size-4 accent-primary" />
-              <span>
-                <span className="font-medium">{option.code}</span>
-                <span className="block text-muted-foreground">{option.label}</span>
-              </span>
-            </label>
-          ))}
-        </div>
+        <p className="text-sm text-muted-foreground">Grouped by region. Pick up to 12.</p>
+        <AreaChecklist options={options} defaults={selected} />
       </fieldset>
       <SaveButton />
       {state?.status === "updated" ? <p className="text-sm leading-6">Areas saved. The next Thursday email uses this list.</p> : null}

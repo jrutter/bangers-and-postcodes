@@ -1,6 +1,7 @@
 import venueFile from "@/data/venues.json"
 
 import { compactPostcode } from "@/lib/geo"
+import { districtInRegion, regionById } from "@/lib/regions"
 
 export type VenueType =
   | "grassroots"
@@ -101,11 +102,14 @@ export function filterVenues(
       return false
     }
     if (area) {
-      const inArea =
-        venue.postcodeDistrict === area ||
-        venue.boroughId === area ||
-        venue.postcodes.includes(area) ||
-        venue.areaIds.includes(area)
+      const region = regionById(area)
+      const inArea = region
+        ? (venue.postcodeDistrict ? districtInRegion(venue.postcodeDistrict, region.id) : false) ||
+          venue.postcodes.some((code) => districtInRegion(code, region.id))
+        : venue.postcodeDistrict === area ||
+          venue.boroughId === area ||
+          venue.postcodes.includes(area) ||
+          venue.areaIds.includes(area)
       if (!inArea) return false
     }
     if (!text) return true

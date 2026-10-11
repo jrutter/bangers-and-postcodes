@@ -17,6 +17,7 @@ import {
 } from "@/lib/catalogue"
 import { eraLabel, filterArtists, parseEra, PLAYLIST_TRACK_CAP, withEra } from "@/lib/era"
 import { cataloguePostcodes, coveredPostcodes } from "@/lib/geo"
+import { regions } from "@/lib/regions"
 import { groupVenues, venues } from "@/lib/venues"
 import { openSpotifyPlaylist } from "@/lib/format"
 import { hasSpotifySession } from "@/lib/session"
@@ -115,6 +116,13 @@ export async function PlaylistPanel({
             className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none"
           >
             <option value="all">All of London</option>
+            <optgroup label="Regions">
+              {regions().map((region) => (
+                <option key={region.id} value={`region:${region.id}`}>
+                  {region.name}
+                </option>
+              ))}
+            </optgroup>
             <optgroup label="Postcodes">
               {postcodes().map((postcode) => (
                 <option key={postcode} value={`postcode:${postcode}`}>

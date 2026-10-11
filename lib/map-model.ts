@@ -69,6 +69,7 @@ export type MapModel = {
   venues: MapVenuePin[]
   personalised: boolean
   listingsConfigured: boolean
+  focusRegionId: string | null
 }
 
 export function buildMapModel(input: {
@@ -80,6 +81,7 @@ export function buildMapModel(input: {
   profile: TasteProfile | null
   listingsConfigured: boolean
   era?: EraFilter | null
+  focusRegionId?: string | null
 }): MapModel {
   const tags = indexTags(input.artists)
   const profile = input.profile
@@ -154,6 +156,7 @@ export function buildMapModel(input: {
     venues: pins,
     personalised: Boolean(profile),
     listingsConfigured: input.listingsConfigured,
+    focusRegionId: input.focusRegionId ?? null,
   }
 }
 

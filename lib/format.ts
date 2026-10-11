@@ -53,4 +53,4 @@ export function openSpotifyPlaylist(value: string | undefined): string | null {
 }
 
 export const TAGLINE =
-  "The best music from your ends, old and new. Pick a London postcode and get a Spotify playlist of artists from right round the corner, from the City out to the boroughs."
+  "Bangers & Postcodes for London. Pick a region, then a postcode, and leave with the local artists, the venues, and a playlist. Written for visitors as well as people who already live here."
