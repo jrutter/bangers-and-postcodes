@@ -1,8 +1,14 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { useEffect } from "react"
 
-export default function ErrorPage({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+import { Button } from "@/components/ui/button"
+import { captureException } from "@/lib/posthog-browser"
+
+export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  useEffect(() => {
+    captureException(error)
+  }, [error])
   return (
     <div className="max-w-xl space-y-4">
       <p className="text-sm font-medium tracking-[0.16em] text-primary uppercase">Error</p>

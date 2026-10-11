@@ -4,6 +4,7 @@ import { connection } from "next/server"
 import { NextRequest, NextResponse } from "next/server"
 
 import { authorizeUrl, envValue, LOGIN_SCOPES, safeReturnPath } from "@/lib/oauth"
+import { captureServerIfAllowed } from "@/lib/posthog-server"
 import { COOKIE, cookieOptions } from "@/lib/session"
 import { spotifyClient } from "@/lib/spotify"
 
@@ -11,6 +12,7 @@ export async function GET(request: NextRequest) {
   await connection()
   const client = spotifyClient()
   if (!client.configured()) {
+    await reportLogin("unconfigured")
     return new NextResponse(missingCredentialsPage(), {
       status: 200,
       headers: { "Content-Type": "text/html; charset=utf-8" },
@@ -27,7 +29,16 @@ export async function GET(request: NextRequest) {
   const response = NextResponse.redirect(destination)
   response.cookies.set(COOKIE.state, state, cookieOptions(60 * 10))
   response.cookies.set(COOKIE.returnTo, returnTo, cookieOptions(60 * 10))
+  await reportLogin("started")
   return response
+}
+
+async function reportLogin(status: string) {
+  try {
+    await captureServerIfAllowed("spotify_login_started", { status })
+  } catch {
+    // Analytics must not block Spotify login.
+  }
 }
 
 function missingCredentialsPage(): string {

@@ -2,7 +2,10 @@ import { timingSafeEqual } from "node:crypto"
 
 import { NextRequest, NextResponse } from "next/server"
 
+import { LISTENER_COOKIE } from "@/lib/analytics"
+import { analyticsSecret, listenerId } from "@/lib/listener-id"
 import { safeReturnPath } from "@/lib/oauth"
+import { captureServerIfAllowed } from "@/lib/posthog-server"
 import { COOKIE, applyTokenCookies, cookieOptions } from "@/lib/session"
 import { spotifyClient } from "@/lib/spotify"
 
@@ -11,7 +14,8 @@ export async function GET(request: NextRequest) {
   const returnedState = params.get("state") ?? ""
   const expectedState = request.cookies.get(COOKIE.state)?.value ?? ""
   const returnTo = safeReturnPath(request.cookies.get(COOKIE.returnTo)?.value)
-  const fail = (code: string) => {
+  const fail = async (code: string) => {
+    await reportLogin(false, code)
     const destination = new URL(returnTo, request.url)
     destination.searchParams.set("error", code)
     const response = NextResponse.redirect(destination)
@@ -24,14 +28,40 @@ export async function GET(request: NextRequest) {
   if (!code || !expectedState || !safeEqual(returnedState, expectedState)) return fail("state")
 
   try {
-    const bundle = await spotifyClient().exchangeCode(code)
+    const client = spotifyClient()
+    const bundle = await client.exchangeCode(code)
     const destination = new URL(returnTo, request.url)
     const response = NextResponse.redirect(destination)
     applyTokenCookies(response.cookies, bundle)
     clearOauth(response)
+    let hash: string | null = null
+    try {
+      const spotifyUserId = await client.profileId(bundle.access_token)
+      if (spotifyUserId) {
+        hash = listenerId(spotifyUserId, analyticsSecret())
+        response.cookies.set(LISTENER_COOKIE, hash, {
+          httpOnly: true,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 60,
+        })
+      }
+    } catch {
+      // Login still succeeds when the profile lookup fails.
+    }
+    await reportLogin(true, "completed", hash)
     return response
   } catch {
     return fail("spotify")
+  }
+}
+
+async function reportLogin(success: boolean, status: string, distinctId?: string | null) {
+  try {
+    await captureServerIfAllowed("spotify_login_completed", { success, status }, distinctId || undefined)
+  } catch {
+    // Analytics must not block the redirect.
   }
 }
 

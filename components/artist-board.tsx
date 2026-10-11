@@ -197,7 +197,14 @@ function ArtistGigs({ artistName, gigs }: { artistName: string; gigs: TaggedGig[
             {gig.ticketUrl ? (
               <>
                 {" · "}
-                <a className="underline decoration-border underline-offset-4 hover:text-primary" href={gig.ticketUrl}>
+                <a
+                  className="underline decoration-border underline-offset-4 hover:text-primary"
+                  href={gig.ticketUrl}
+                  data-analytics="gig-ticket"
+                  data-artist={artistName}
+                  data-venue={gig.venueName}
+                  data-area={gig.postcode ?? ""}
+                >
                   Tickets
                 </a>
               </>
@@ -222,7 +229,13 @@ function SpotifyLine({ artist, trackUrl }: { artist: MatchedArtist; trackUrl: st
     <div className="space-y-1 text-sm">
       <p>
         {artist.spotify.url ? (
-          <a className="font-medium underline decoration-border underline-offset-4 hover:text-primary" href={artist.spotify.url}>
+          <a
+            className="font-medium underline decoration-border underline-offset-4 hover:text-primary"
+            href={artist.spotify.url}
+            data-analytics="spotify-open"
+            data-artist={artist.spotify.name || artist.name}
+            data-kind="artist"
+          >
             {artist.spotify.name || artist.name} on Spotify
           </a>
         ) : (
@@ -236,7 +249,13 @@ function SpotifyLine({ artist, trackUrl }: { artist: MatchedArtist; trackUrl: st
         <p>
           Track:{" "}
           {trackUrl ? (
-            <a className="underline decoration-border underline-offset-4 hover:text-primary" href={trackUrl}>
+            <a
+              className="underline decoration-border underline-offset-4 hover:text-primary"
+              href={trackUrl}
+              data-analytics="spotify-open"
+              data-artist={artist.name}
+              data-kind="track"
+            >
               {track.name}
             </a>
           ) : (

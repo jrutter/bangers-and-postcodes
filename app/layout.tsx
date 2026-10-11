@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Outfit } from "next/font/google";
 
+import { AnalyticsProvider } from "@/components/analytics-provider";
 import { SiteFrame } from "@/components/site-frame";
 import { TAGLINE } from "@/lib/format";
 
@@ -28,7 +29,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${outfit.variable} ${fraunces.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        <SiteFrame>{children}</SiteFrame>
+        <AnalyticsProvider>
+          <SiteFrame>{children}</SiteFrame>
+        </AnalyticsProvider>
       </body>
     </html>
   );

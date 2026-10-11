@@ -61,7 +61,12 @@ export async function PlaylistPanel({
         <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
           Created {playlistTitle || "the playlist"}
           {tracks ? ` with ${tracks} tracks` : ""}.{" "}
-          <a className="font-medium underline decoration-border underline-offset-4" href={created}>
+          <a
+            className="font-medium underline decoration-border underline-offset-4"
+            href={created}
+            data-analytics="spotify-open"
+            data-kind="playlist"
+          >
             Open it on Spotify
           </a>
           .
@@ -84,6 +89,7 @@ export async function PlaylistPanel({
             id="scope"
             name="scope"
             defaultValue={scopeValue(scope)}
+            data-analytics-filter="playlist_scope"
             className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
           >
             <option value="all">All of southwest London</option>
