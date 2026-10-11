@@ -1,5 +1,7 @@
 import Link from "next/link"
+import { Suspense } from "react"
 
+import { NewsletterSignup } from "@/components/newsletter-signup"
 import { playlistPath } from "@/lib/catalogue"
 
 export function SiteFrame({ children }: { children: React.ReactNode }) {
@@ -43,12 +45,17 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <footer className="relative mt-auto border-t border-border/80">
-        <p className="mx-auto max-w-5xl px-4 py-6 text-sm text-muted-foreground sm:px-6">
-          Locality comes from MusicBrainz and Wikidata, not from Spotify. A Spotify match is a name match. Borough
-          links stay off the postcode counts.           Gig listings come from Skiddle and Ticketmaster when those keys are set,
-          and stay empty when they are not. A Spotify login can rank For you from
-          that session. Taste is not stored on the server.
-        </p>
+        <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
+          <Suspense fallback={<p className="text-sm text-muted-foreground">Weekly email signup</p>}>
+            <NewsletterSignup placement="footer" inferPath />
+          </Suspense>
+          <p className="text-sm text-muted-foreground">
+            Locality comes from MusicBrainz and Wikidata, not from Spotify. A Spotify match is a name match. Borough
+            links stay off the postcode counts. Gig listings come from Skiddle and Ticketmaster when those keys are set,
+            and stay empty when they are not. A Spotify login can rank For you from that session. Taste is not stored
+            on the server.
+          </p>
+        </div>
       </footer>
     </div>
   )

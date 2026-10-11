@@ -3,6 +3,7 @@ import { Suspense } from "react"
 
 import { ForYou } from "@/components/for-you"
 import { GigSection } from "@/components/gig-section"
+import { NewsletterSignup } from "@/components/newsletter-signup"
 import { LinkButton } from "@/components/link-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -63,6 +64,10 @@ export default function HomePage() {
           emptyLabel="No gigs were listed for the next 7 days."
           limit={6}
         />
+      </Suspense>
+
+      <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the weekly email signup…</p>}>
+        <NewsletterSignup placement="panel" defaultAreas={[]} />
       </Suspense>
 
       <section id="postcodes" className="space-y-4">

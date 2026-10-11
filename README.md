@@ -56,10 +56,62 @@ Artist search and track lookup use the client-credentials flow and stay on the s
 ## Deploy on Vercel
 
 1. Import this repository. The framework preset is Next.js. The build command is `npm run build`.
-2. Add environment variables: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, and `SPOTIFY_REDIRECT_URI`. For gigs, also add `SKIDDLE_API_KEY` and `TICKETMASTER_API_KEY` when you have them. Either gig key can be left unset.
+2. Add environment variables: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, and `SPOTIFY_REDIRECT_URI`. For gigs, also add `SKIDDLE_API_KEY` and `TICKETMASTER_API_KEY` when you have them. Either gig key can be left unset. For the weekly email, add the newsletter variables in the next section when you are ready. Until then the signup form says it is not switched on.
 3. Set `SPOTIFY_REDIRECT_URI` to `https://<your-domain>/api/auth/callback`.
 4. Add that https URI, and `http://127.0.0.1:3000/api/auth/callback`, in the Spotify dashboard.
-5. Redeploy after the variables are saved. `npm run build` does not call Spotify.
+5. Redeploy after the variables are saved. `npm run build` does not call Spotify or send email.
+
+## Weekly email
+
+The Thursday email is opt-in. A visitor picks one or more postcode districts (the area or postcode page starts with that district ticked), enters an email, and ticks consent. Spotify login is optional and is not stored. We store the email, the districts, and the times they consent, confirm, and unsubscribe, plus a hashed one-time confirm token and a send ledger so a week is not mailed twice. Preference and unsubscribe links are signed and are not stored.
+
+Nothing weekly goes out until they open the confirmation email. Each Thursday email has a plain-text part, a List-Unsubscribe header, and a one-click unsubscribe link. If a district has no gigs in the next 7 days, that district is left out. If none of their districts have a gig, that subscriber is skipped for the week.
+
+Local development and tests never call Resend. With the database and token secret set, a local signup shows the confirm link on the page instead of sending it. `NEWSLETTER_ALLOW_SEND=1` is an explicit override and should stay unset.
+
+Services to provision:
+
+1. [Neon Postgres on the Vercel Marketplace](https://vercel.com/marketplace/neon). Installing it sets `POSTGRES_URL`. `DATABASE_URL` is accepted as a fallback.
+2. [Resend](https://resend.com/signup). Create an API key at [API keys](https://resend.com/api-keys). The [onboarding sender](https://resend.com/docs/send-with-nodejs) (`onboarding@resend.dev`) only delivers to the Resend account address, so a real list needs a verified domain.
+
+Environment variables in the Vercel project:
+
+| Name | Purpose |
+| --- | --- |
+| `POSTGRES_URL` | Neon connection string from the marketplace integration |
+| `RESEND_API_KEY` | Resend API key |
+| `NEWSLETTER_FROM` | Verified from address, for example `Bangers & Postcodes <news@updates.example.com>` |
+| `NEWSLETTER_TOKEN_SECRET` | Long random string. Signs preference and unsubscribe links |
+| `CRON_SECRET` | Vercel sends `Authorization: Bearer <CRON_SECRET>` to the cron route |
+| `NEWSLETTER_PREVIEW_SECRET` | Unlocks `/newsletter/preview` |
+| `SITE_URL` | `https://bangers-and-postcodes.vercel.app`, or a custom domain later. Used for links inside emails |
+| `NEWSLETTER_BATCH_SIZE` | Optional. Default 50. Resend's batch cap is 100 |
+| `NEWSLETTER_BATCH_DELAY_MS` | Optional. Default 600, so batches stay under a small account's rate limit |
+
+Sending domain DNS. Add a subdomain such as `updates.example.com` in the [Resend domains dashboard](https://resend.com/domains/add) and copy the records Resend shows. Do not invent the DKIM value. As of October 2026, newer domains may show two CNAMEs; older ones show SPF as an MX plus a TXT, and DKIM as a TXT:
+
+- SPF MX on the return-path host (default `send`): priority 10, value similar to `feedback-smtp.<region>.amazonses.com` (the region is the one Resend picked: `us-east-1`, `eu-west-1`, `ap-northeast-1`, or `sa-east-1`).
+- SPF TXT on that same host: `v=spf1 include:amazonses.com ~all`.
+- DKIM TXT at `resend._domainkey`: the exact `p=` value from the dashboard.
+- Optional DMARC TXT at `_dmarc`: `v=DMARC1; p=none`.
+
+If the DNS host appends your domain onto the MX or CNAME target, add a trailing dot so the name stays absolute. Leave Cloudflare proxying off for these records. Verification is usually within 15 minutes and can take up to 72 hours. Then set `NEWSLETTER_FROM` to an address on that domain.
+
+The cron is `0 8 * * 4` in `vercel.json`: 08:00 UTC on Thursday, which is 08:00 in winter and 09:00 during British Summer Time. The handler only sends between 07:00 and 10:59 UK time unless you call it with `force=1`. A second run in the same ISO week does not send again. A failed batch is marked failed and can be retried; the Resend call uses an idempotency key for that batch.
+
+Preview the rendered email (this does not send):
+
+1. Set `NEWSLETTER_PREVIEW_SECRET`.
+2. Open `/newsletter/preview`, enter the secret, and pick a district. `?area=SW15` selects one. The page says whether that issue would actually be sent.
+3. Or, from a shell: `curl -H "Authorization: Bearer $NEWSLETTER_PREVIEW_SECRET" "https://bangers-and-postcodes.vercel.app/newsletter/preview?area=SW15"`.
+
+Dry run the cron (reads subscribers, sends nothing):
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" "https://bangers-and-postcodes.vercel.app/api/cron/newsletter?dry=1"
+```
+
+`sent` in a dry run is the number of emails that would go out. A real Thursday run is the same URL without `dry=1`. Add `&force=1` only when you mean to send outside Thursday morning.
 
 ## Discovery script
 
