@@ -90,13 +90,13 @@ function NewsletterFields({
           <legend className="text-sm font-medium">Areas</legend>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {options.map((option) => (
-              <label key={option.code} className="flex items-start gap-2 rounded-lg bg-card px-3 py-2 text-sm ring-1 ring-foreground/10">
+              <label key={option.code} className="flex items-start gap-2 rounded-lg bg-card px-3 py-2 text-sm ring-1 ring-border">
                 <input
                   type="checkbox"
                   name="areas"
                   value={option.code}
                   defaultChecked={defaults.includes(option.code)}
-                  className="mt-1"
+                  className="mt-1 size-4 accent-primary"
                 />
                 <span>
                   <span className="font-medium">{option.code}</span>
@@ -107,7 +107,7 @@ function NewsletterFields({
           </div>
         </fieldset>
         <label className="flex items-start gap-2 text-sm leading-6">
-          <input type="checkbox" name="consent" value="yes" required className="mt-1" />
+          <input type="checkbox" name="consent" value="yes" required className="mt-1 size-4 accent-primary" />
           <span>Email me a weekly roundup for the areas I picked. I can unsubscribe in one click.</span>
         </label>
         <p className="text-sm leading-6 text-muted-foreground">
@@ -138,7 +138,7 @@ function NewsletterSubmit() {
 function FormNotice({ state }: { state: SubscribeResult | null }) {
   if (!state) return null
   if (state.status === "invalid") {
-    return <p className="text-sm text-primary">{state.message}</p>
+    return <p className="text-sm text-destructive">{state.message}</p>
   }
   return (
     <div className="space-y-2 text-sm leading-6">

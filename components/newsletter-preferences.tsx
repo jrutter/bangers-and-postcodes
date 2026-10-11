@@ -31,8 +31,8 @@ export function PreferenceForm({
         <legend className="text-sm font-medium">Areas</legend>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {options.map((option) => (
-            <label key={option.code} className="flex items-start gap-2 rounded-lg bg-card px-3 py-2 text-sm ring-1 ring-foreground/10">
-              <input type="checkbox" name="areas" value={option.code} defaultChecked={selected.includes(option.code)} className="mt-1" />
+            <label key={option.code} className="flex items-start gap-2 rounded-lg bg-card px-3 py-2 text-sm ring-1 ring-border">
+              <input type="checkbox" name="areas" value={option.code} defaultChecked={selected.includes(option.code)} className="mt-1 size-4 accent-primary" />
               <span>
                 <span className="font-medium">{option.code}</span>
                 <span className="block text-muted-foreground">{option.label}</span>
@@ -43,7 +43,7 @@ export function PreferenceForm({
       </fieldset>
       <SaveButton />
       {state?.status === "updated" ? <p className="text-sm leading-6">Areas saved. The next Thursday email uses this list.</p> : null}
-      {state?.status === "invalid" ? <p className="text-sm text-primary">{state.message}</p> : null}
+      {state?.status === "invalid" ? <p className="text-sm text-destructive">{state.message}</p> : null}
     </form>
   )
 }

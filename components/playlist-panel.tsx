@@ -74,7 +74,7 @@ export async function PlaylistPanel({
           {failedPlaylist ? (
             <>
               {" "}
-              <a className="font-medium underline decoration-border underline-offset-4" href={failedPlaylist}>
+              <a className="spotify-link" href={failedPlaylist}>
                 Open the playlist on Spotify
               </a>
               .

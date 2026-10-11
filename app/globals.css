@@ -194,10 +194,16 @@
 }
 
 @layer components {
+  /*
+    Same wash as the pre-restyle frame: an 18rem band (h-72), ellipse at the top
+    left fading by 55% and ellipse at the top right fading by 50%, each at 14%
+    strength. Raspberry and blue replace the old red and green. The page base
+    stays --paper.
+  */
   .site-wash {
     background-image:
-      radial-gradient(ellipse at top left, color-mix(in srgb, var(--raspberry) 16%, transparent), transparent 55%),
-      radial-gradient(ellipse at top right, color-mix(in srgb, var(--blue) 14%, transparent), transparent 50%);
+      radial-gradient(ellipse at top left, rgb(from var(--raspberry) r g b / 14%), transparent 55%),
+      radial-gradient(ellipse at top right, rgb(from var(--blue) r g b / 14%), transparent 50%);
   }
 
   /* Spotify links stay on Spotify black/white. Hover does not shift them into the app palette. */

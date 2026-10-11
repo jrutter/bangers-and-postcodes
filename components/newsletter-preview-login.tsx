@@ -22,7 +22,7 @@ export function PreviewLogin() {
       <Button type="submit" size="lg" className="h-10 px-4">
         Show the email
       </Button>
-      {state?.ok === false ? <p className="text-sm text-primary">That secret does not match.</p> : null}
+      {state?.ok === false ? <p className="text-sm text-destructive">That secret does not match.</p> : null}
     </form>
   )
 }
