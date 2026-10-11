@@ -1,6 +1,6 @@
 "use server"
 
-import { redirect } from "next/navigation"
+import { redirect, unstable_rethrow } from "next/navigation"
 
 import { artistsForScope, gigScopePhrase, isGigScope, parseScope, scopeLabel, scopeValue } from "@/lib/catalogue"
 import { loadRegionalGigs } from "@/lib/gigs/cache"
@@ -8,7 +8,7 @@ import { gigProviderFingerprint } from "@/lib/gigs/providers"
 import { artistRecordsForGigs, selectGigs, selectionForScope } from "@/lib/gigs/select"
 import { gigPlaylistDescription, playlistDescription, playlistName, trackUris } from "@/lib/playlist"
 import { getUserToken } from "@/lib/session"
-import { spotifyClient } from "@/lib/spotify"
+import { SpotifyError, appendSpotifyFailure, spotifyClient } from "@/lib/spotify"
 import type { ArtistRecord } from "@/lib/types"
 
 export async function createPlaylist(formData: FormData) {
@@ -27,7 +27,8 @@ export async function createPlaylist(formData: FormData) {
   const isPublic = formData.get("public") === "1"
 
   let created: { url: string | null; trackCount: number; name: string } | null = null
-  let failure: "tracks" | "spotify" | "gigs" | "gig-keys" | null = null
+  let failure: "tracks" | "spotify" | "gigs" | "gig-keys" | "unknown" | null = null
+  let spotifyFailure: SpotifyError | null = null
   try {
     const loaded = isGigScope(scope) ? await artistsFromGigs(scope) : { artists: artistsForScope(scope), failure: null }
     if (loaded.failure) {
@@ -46,9 +47,16 @@ export async function createPlaylist(formData: FormData) {
         })
       }
     }
-  } catch {
-    failure = "spotify"
+  } catch (error) {
+    unstable_rethrow(error)
+    if (error instanceof SpotifyError) {
+      spotifyFailure = error
+    } else {
+      console.error("[playlist] create failed", error instanceof Error ? error.message : "unknown")
+      failure = "unknown"
+    }
   }
+  if (spotifyFailure) redirect(appendSpotifyFailure(back, spotifyFailure))
   if (failure || !created) redirect(withQuery(back, "error", failure ?? "spotify"))
 
   const destination = new URL("http://local.invalid/playlist")

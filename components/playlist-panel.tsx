@@ -18,7 +18,7 @@ import {
 import { venues } from "@/lib/venues"
 import { openSpotifyPlaylist } from "@/lib/format"
 import { hasSpotifySession } from "@/lib/session"
-import { spotifyClient } from "@/lib/spotify"
+import { describeSpotifyFailure, spotifyClient } from "@/lib/spotify"
 
 const ERRORS: Record<string, string> = {
   credentials: "Spotify credentials are not set. Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to the environment.",
@@ -26,7 +26,7 @@ const ERRORS: Record<string, string> = {
   state: "That login attempt expired. Use Log in with Spotify again.",
   auth: "Log in with Spotify before creating a playlist.",
   tracks: "None of these artists have a Spotify track to add yet.",
-  spotify: "Spotify refused the playlist. Check the app redirect URI and try again.",
+  unknown: "The playlist could not be created. Try again.",
   scope: "That area is not in this catalogue.",
   gigs: "No artists were listed for that gig playlist, so nothing was created.",
   "gig-keys":
@@ -45,6 +45,20 @@ export async function PlaylistPanel({
   const loggedIn = await hasSpotifySession()
   const configured = spotifyClient().configured()
   const errorCode = first(query.error)
+  const errorText =
+    errorCode === "spotify"
+      ? describeSpotifyFailure({
+          status: first(query.spotifyStatus),
+          detail: first(query.spotifyDetail),
+          phase: first(query.spotifyPhase),
+        })
+      : errorCode
+        ? ERRORS[errorCode]
+        : undefined
+  const failedPlaylist =
+    errorCode === "spotify" && first(query.spotifyPhase) === "items"
+      ? openSpotifyPlaylist(first(query.spotifyPlaylist))
+      : null
   const created = openSpotifyPlaylist(first(query.created))
   const tracks = first(query.tracks)
   const playlistTitle = first(query.name)
@@ -54,8 +68,19 @@ export async function PlaylistPanel({
 
   return (
     <div className="max-w-xl space-y-6">
-      {errorCode && ERRORS[errorCode] ? (
-        <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm">{ERRORS[errorCode]}</p>
+      {errorText ? (
+        <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
+          {errorText}
+          {failedPlaylist ? (
+            <>
+              {" "}
+              <a className="font-medium underline decoration-border underline-offset-4" href={failedPlaylist}>
+                Open the playlist on Spotify
+              </a>
+              .
+            </>
+          ) : null}
+        </p>
       ) : null}
       {created ? (
         <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm">

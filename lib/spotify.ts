@@ -1,12 +1,81 @@
+import { openSpotifyPlaylist } from "@/lib/format"
 import { chooseArtist, chooseTrack, metricsFromArtist } from "@/lib/names"
 import { API_ROOT, TOKEN_URL, envValue, redirectUri } from "@/lib/oauth"
+import { chunk } from "@/lib/playlist"
 import type { ArtistRecord, MatchedArtist, SpotifyProfile, TokenBundle } from "@/lib/types"
 
+export type SpotifyFailurePhase = "token" | "create" | "items"
+
+const SECRET_KEY = /^(access_token|refresh_token|client_secret|authorization|id_token|code_verifier|code|token)$/i
+const BEARER = /Bearer\s+\S+/gi
+const LABELED_SECRET = /\b(access_token|refresh_token|client_secret|authorization|id_token|code_verifier)\b(\s*[:=]\s*)\S+/gi
+const LONG_TOKEN = /\b[A-Za-z0-9_-]{40,}\b/g
+
 export class SpotifyError extends Error {
-  constructor(message: string) {
+  readonly status: number | null
+  readonly spotifyMessage: string
+  readonly phase: SpotifyFailurePhase | null
+  playlistUrl: string | null
+
+  constructor(
+    message: string,
+    options?: {
+      status?: number | null
+      spotifyMessage?: string
+      phase?: SpotifyFailurePhase | null
+      playlistUrl?: string | null
+    },
+  ) {
+    const spotifyMessage = sanitizeSpotifyDetail(options?.spotifyMessage)
     super(message)
     this.name = "SpotifyError"
+    this.status = options?.status ?? null
+    this.spotifyMessage = spotifyMessage
+    this.phase = options?.phase ?? null
+    this.playlistUrl = options?.playlistUrl ?? null
   }
+}
+
+/** User-facing copy. Query values are untrusted, so status, phase, and detail are checked here. */
+export function describeSpotifyFailure(input: {
+  status?: string | null
+  detail?: string | null
+  phase?: string | null
+}): string {
+  const status = input.status && /^\d{3}$/.test(input.status) ? input.status : ""
+  const detail = sanitizeSpotifyDetail(input.detail).replace(/[. ]+$/g, "")
+  const phase = input.phase === "token" || input.phase === "create" || input.phase === "items" ? input.phase : null
+  let text = "Spotify could not finish that request. Try again."
+  if (status && detail) text = `Spotify returned ${status}: ${detail}.`
+  else if (status) text = `Spotify returned ${status}.`
+  else if (detail) text = `Spotify returned an error: ${detail}.`
+  if (status === "401") text += " Log in with Spotify again."
+  if (phase === "items") text += " The playlist was created, but the tracks were not added."
+  return text
+}
+
+export function appendSpotifyFailure(path: string, error: SpotifyError): string {
+  const url = new URL(path, "http://local.invalid")
+  url.searchParams.set("error", "spotify")
+  if (error.status) url.searchParams.set("spotifyStatus", String(error.status))
+  const detail = sanitizeSpotifyDetail(error.spotifyMessage)
+  if (detail) url.searchParams.set("spotifyDetail", detail)
+  if (error.phase) url.searchParams.set("spotifyPhase", error.phase)
+  const playlist = error.phase === "items" ? openSpotifyPlaylist(error.playlistUrl ?? undefined) : null
+  if (playlist) url.searchParams.set("spotifyPlaylist", playlist)
+  return `${url.pathname}${url.search}`
+}
+
+export function sanitizeSpotifyDetail(value: string | null | undefined): string {
+  if (!value) return ""
+  return value
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
+    .replace(BEARER, "Bearer [redacted]")
+    .replace(LABELED_SECRET, "$1$2[redacted]")
+    .replace(LONG_TOKEN, "[redacted]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 180)
 }
 
 type FetchLike = typeof fetch
@@ -69,10 +138,14 @@ export function createSpotify(options?: { fetch?: FetchLike; env?: SpotifyEnv })
       input: { name: string; description: string; isPublic: boolean; uris: string[] },
     ): Promise<{ id: string; name: string; url: string | null; isPublic: boolean; trackCount: number }> {
       if (input.uris.length === 0) {
-        throw new SpotifyError("No Spotify tracks to add.")
+        throw new SpotifyError("No Spotify tracks to add.", {
+          spotifyMessage: "No Spotify tracks to add.",
+          phase: "create",
+        })
       }
       const playlist = await apiSend(fetchImpl, "POST", "/me/playlists", {
         token: accessToken,
+        phase: "create",
         json: {
           name: input.name,
           description: input.description.slice(0, 300),
@@ -80,11 +153,10 @@ export function createSpotify(options?: { fetch?: FetchLike; env?: SpotifyEnv })
         },
       })
       const id = typeof playlist.id === "string" ? playlist.id : ""
-      if (!id) throw new SpotifyError("Spotify created a playlist response with no id.")
-      for (let index = 0; index < input.uris.length; index += 100) {
-        await apiSend(fetchImpl, "POST", `/playlists/${id}/tracks`, {
-          token: accessToken,
-          json: { uris: input.uris.slice(index, index + 100) },
+      if (!id) {
+        throw new SpotifyError("Spotify created a playlist response with no id.", {
+          spotifyMessage: "Playlist response had no id.",
+          phase: "create",
         })
       }
       const external = playlist.external_urls
@@ -92,6 +164,18 @@ export function createSpotify(options?: { fetch?: FetchLike; env?: SpotifyEnv })
         external && typeof external === "object" && typeof (external as { spotify?: string }).spotify === "string"
           ? (external as { spotify: string }).spotify
           : null
+      for (const batch of chunk(input.uris, 100)) {
+        try {
+          await apiSend(fetchImpl, "POST", `/playlists/${encodeURIComponent(id)}/items`, {
+            token: accessToken,
+            phase: "items",
+            json: { uris: batch },
+          })
+        } catch (error) {
+          if (error instanceof SpotifyError) error.playlistUrl = url
+          throw error
+        }
+      }
       return {
         id,
         name: typeof playlist.name === "string" ? playlist.name : input.name,
@@ -208,10 +292,14 @@ async function tokenRequest(
     body,
     cache: "no-store",
   })
-  const payload = await readJson(response, "token")
+  const payload = await readJson(response, "token", "token")
   const access = payload.access_token
   if (typeof access !== "string" || !access) {
-    throw new SpotifyError("Spotify token response had no access_token.")
+    throw new SpotifyError("Spotify token response had no access_token.", {
+      status: response.status,
+      spotifyMessage: "Token response had no access_token.",
+      phase: "token",
+    })
   }
   return {
     access_token: access,
@@ -226,7 +314,12 @@ async function apiSend(
   fetchImpl: FetchLike,
   method: string,
   path: string,
-  options: { token: string; params?: Record<string, string>; json?: Record<string, unknown> },
+  options: {
+    token: string
+    params?: Record<string, string>
+    json?: Record<string, unknown>
+    phase?: SpotifyFailurePhase | null
+  },
 ): Promise<Record<string, unknown>> {
   const url = new URL(`${API_ROOT}${path}`)
   if (options.params) {
@@ -240,30 +333,77 @@ async function apiSend(
   }
   const response = await fetchImpl(url, { method, headers, body, cache: "no-store" })
   if (response.status === 204) return {}
-  return readJson(response, `${method} ${path}`)
+  return readJson(response, `${method} ${path}`, options.phase ?? null)
 }
 
-async function readJson(response: Response, what: string): Promise<Record<string, unknown>> {
-  let payload: unknown
-  try {
-    payload = await response.json()
-  } catch {
-    throw new SpotifyError(`Spotify ${what} returned ${response.status} and no JSON.`)
+async function readJson(
+  response: Response,
+  what: string,
+  phase: SpotifyFailurePhase | null = null,
+): Promise<Record<string, unknown>> {
+  const text = await response.text()
+  let payload: unknown = null
+  let parsed = false
+  if (text) {
+    try {
+      payload = JSON.parse(text)
+      parsed = true
+    } catch {
+      parsed = false
+    }
   }
   if (response.status >= 400) {
-    let message = ""
-    if (payload && typeof payload === "object") {
-      const record = payload as { error_description?: string; error?: { message?: string } | string }
-      message = record.error_description || ""
-      if (record.error && typeof record.error === "object") message = record.error.message || message
-      else if (typeof record.error === "string" && !message) message = record.error
-    }
-    throw new SpotifyError(`Spotify ${what} failed (${response.status}): ${message}`)
+    const rawMessage = parsed ? spotifyErrorMessage(payload) : ""
+    const spotifyMessage = sanitizeSpotifyDetail(rawMessage) || (parsed ? "Spotify rejected the request." : "Response was not JSON.")
+    logSpotifyUpstream(what, response.status, parsed ? payload : text.slice(0, 500))
+    throw new SpotifyError(`Spotify ${what} failed (${response.status}): ${spotifyMessage}`, {
+      status: response.status,
+      spotifyMessage,
+      phase,
+    })
   }
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    throw new SpotifyError(`Spotify ${what} returned an unexpected payload.`)
+  if (!parsed || !payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new SpotifyError(`Spotify ${what} returned an unexpected payload.`, {
+      status: response.status,
+      spotifyMessage: "Unexpected payload.",
+      phase,
+    })
   }
   return payload as Record<string, unknown>
+}
+
+function spotifyErrorMessage(payload: unknown): string {
+  if (!payload || typeof payload !== "object") return ""
+  const record = payload as { error_description?: unknown; error?: unknown }
+  const description = typeof record.error_description === "string" ? record.error_description : ""
+  if (record.error && typeof record.error === "object") {
+    const message = (record.error as { message?: unknown }).message
+    if (typeof message === "string" && message.trim()) return message
+  }
+  if (description.trim()) return description
+  if (typeof record.error === "string" && record.error.trim()) return record.error
+  return ""
+}
+
+function logSpotifyUpstream(operation: string, status: number, body: unknown): void {
+  console.error("[spotify] upstream error", {
+    operation,
+    status,
+    body: redactForLog(body),
+  })
+}
+
+function redactForLog(value: unknown): unknown {
+  if (typeof value === "string") return sanitizeSpotifyDetail(value)
+  if (Array.isArray(value)) return value.map(redactForLog)
+  if (value && typeof value === "object") {
+    const redacted: Record<string, unknown> = {}
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      redacted[key] = SECRET_KEY.test(key) ? "[redacted]" : redactForLog(item)
+    }
+    return redacted
+  }
+  return value
 }
 
 async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
