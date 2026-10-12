@@ -1,5 +1,6 @@
 import { GIG_MAX_PAGES, GIG_PAGE_SIZE } from "@/lib/gigs/constants"
 import { GigProviderError, asRecord, getJson, httpsUrl, numberField, stringField } from "@/lib/gigs/http"
+import { pace, takeRequest } from "@/lib/gigs/pace"
 import type { Gig, GigDeps, GigProvider, GigSearch } from "@/lib/gigs/types"
 import { namesMatch } from "@/lib/names"
 import { envValue } from "@/lib/oauth"
@@ -20,6 +21,8 @@ export const ticketmasterProvider: GigProvider = {
     const fetchImpl = deps?.fetchImpl ?? fetch
     const gigs: Gig[] = []
     for (let page = 0; page < GIG_MAX_PAGES; page += 1) {
+      if (!takeRequest(deps?.requests)) break
+      await pace("ticketmaster", deps?.paceMs ?? 0)
       const url = new URL(SEARCH_URL)
       url.searchParams.set("apikey", apiKey)
       url.searchParams.set("latlong", `${query.latitude},${query.longitude}`)

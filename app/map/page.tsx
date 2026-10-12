@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "A map of Greater London postcode districts and music venues.",
 }
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 export default function MapPage(props: PageProps<"/map">) {
   return (
@@ -51,7 +51,7 @@ async function MapBody({ searchParams }: { searchParams: PageProps<"/map">["sear
         <p className="text-base leading-7 text-muted-foreground">
           {region
             ? `${region.intro} Tap a district for artists and venues. Pins group together until you zoom in.`
-            : "Every postcode district inside Greater London. Tap a district to zoom into its region, then tap again for artists, venues, and a playlist. Gig listings stay on the southwest search."}
+            : "Every postcode district inside Greater London. Tap a district to zoom into its region, then tap again for artists, venues, and a playlist. Gig listings cover the whole city."}
         </p>
         <EraFilter path={region ? `/map?region=${region.id}` : "/map"} era={era} />
       </header>

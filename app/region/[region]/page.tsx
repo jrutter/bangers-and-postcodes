@@ -6,6 +6,7 @@ import { connection } from "next/server"
 
 import { Breadcrumbs } from "@/components/breadcrumbs"
 import { EraFilter } from "@/components/era-filter"
+import { GigSection } from "@/components/gig-section"
 import { LinkButton } from "@/components/link-button"
 import { LondonMap } from "@/components/london-map"
 import { artists, artistsInPostcode, playlistPath, postcodePath } from "@/lib/catalogue"
@@ -13,12 +14,11 @@ import { londonPostcodes } from "@/lib/districts"
 import { filterArtists, parseEra, showcaseArtists, withEra } from "@/lib/era"
 import { loadRegionalGigs } from "@/lib/gigs/cache"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
-import { formatGigWhen, selectGigs } from "@/lib/gigs/select"
-import { outwardCode } from "@/lib/geo"
+import { listingVenues, selectGigs } from "@/lib/gigs/select"
 import { artistsInRegion, districtInRegion, regionById, regionPath, regions } from "@/lib/regions"
 import { filterVenues, venuePath, venueTypeLabel, venues } from "@/lib/venues"
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 export function generateStaticParams() {
   return regions().map((region) => ({ region: region.id }))
@@ -159,44 +159,40 @@ async function RegionGigs({ regionId }: { regionId: string }) {
   const region = regionById(regionId)
   if (!region) return null
   const feed = await loadRegionalGigs(gigProviderFingerprint())
-  const configured = feed.providers.some((provider) => provider.configured)
-  const week = selectGigs(feed.gigs, { kind: "southwest" }, "week", new Date()).filter((gig) => {
-    const code = outwardCode(gig.postcode)
-    return Boolean(code && districtInRegion(code, regionId))
-  })
-  if (!configured || week.length === 0) {
-    return (
-      <section className="space-y-2">
-        <h2 className="font-heading text-2xl font-semibold tracking-tight">Gigs this week</h2>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          {configured
-            ? `No listings in ${region.name} turned up in this week's search. The live search is an 8 mile sweep of southwest London, so a room here still has its own page when you want the address.`
-            : "No gig provider is configured, so this week's bills are empty. Venue pages are still here."}
-        </p>
-      </section>
-    )
-  }
+  const week = selectGigs(feed.gigs, { kind: "region", regionId }, "week", new Date())
+  const extraRooms = listingVenues(week)
   return (
-    <section className="space-y-3">
-      <h2 className="font-heading text-2xl font-semibold tracking-tight">Gigs this week</h2>
-      <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-        Shows in the next 7 days whose venue postcode is in {region.name}. The search itself stays centred on southwest London.
-      </p>
-      <ul className="space-y-2 text-sm">
-        {week.slice(0, 8).map((gig) => (
-          <li key={gig.id}>
-            <p className="font-medium">{gig.title}</p>
-            <p className="text-muted-foreground">
-              {formatGigWhen(gig)} · {gig.venueName}
-              {gig.postcode ? ` · ${gig.postcode}` : ""}
-            </p>
-          </li>
-        ))}
-      </ul>
+    <div className="space-y-8">
+      <GigSection
+        feed={feed}
+        heading="What's on this week"
+        intro={`Shows in the next 7 days whose venue sits in ${region.name}.`}
+        selection={{ kind: "region", regionId }}
+        span="week"
+        emptyLabel={`No listings in ${region.name} turned up this week.`}
+        limit={8}
+      />
+      {extraRooms.length > 0 ? (
+        <section className="space-y-2">
+          <h2 className="font-heading text-2xl font-semibold tracking-tight">Rooms from this week's listings</h2>
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+            These venues are on a bill in {region.name} and did not match the venue guide, so they stay with the gig
+            instead of being added to the curated list.
+          </p>
+          <ul className="space-y-1 text-sm">
+            {extraRooms.map((room) => (
+              <li key={room.id}>
+                <span className="font-medium">{room.name}</span>
+                {room.district ? <span className="text-muted-foreground"> · {room.district}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       <Link href="/gigs" className="text-sm font-medium underline decoration-border underline-offset-4">
-        All southwest listings
+        All London listings
       </Link>
-    </section>
+    </div>
   )
 }
 

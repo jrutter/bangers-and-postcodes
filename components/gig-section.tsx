@@ -116,6 +116,7 @@ function GigStatus({ feed, empty, emptyLabel }: { feed: GigFeed; empty: boolean;
         {loaded.length > 0 ? `Listings from ${loaded.join(" and ")}` : "No listings were loaded"}
         {missing.length > 0 ? `. ${missing.map((provider) => provider.label).join(" and ")} ${missing.length === 1 ? "is" : "are"} not configured` : ""}
         . Cached for about six hours, from {formatDay(feed.from)} to {formatDay(feed.to)}.
+        {feed.truncated ? " Some later pages were left for the next refresh so the search stays inside the provider limits." : ""}
       </p>
       {failed.map((provider) => (
         <p key={provider.id}>

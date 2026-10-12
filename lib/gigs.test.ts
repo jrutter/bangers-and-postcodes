@@ -2,10 +2,14 @@ import { describe, expect, it, vi } from "vitest"
 
 import { gigScopePhrase, parseScope, scopeValue } from "@/lib/catalogue"
 import { addDays, londonDate, outwardCode } from "@/lib/geo"
+import { LONDON_DISTRICTS } from "@/lib/districts"
 import { collectRegionalGigs } from "@/lib/gigs/collect"
+import { TILE_RADIUS_MILES } from "@/lib/gigs/constants"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
-import { artistRecordsForGigs, placeGigPostcodes, selectGigs, venueForGig } from "@/lib/gigs/select"
-import { parseSkiddle } from "@/lib/gigs/skiddle"
+import { artistRecordsForGigs, listingVenues, placeGigPostcodes, selectGigs, venueForGig, weekCountsByRegion } from "@/lib/gigs/select"
+import { parseSkiddle, skiddleProvider } from "@/lib/gigs/skiddle"
+import { londonSearchTiles } from "@/lib/gigs/tiles"
+import { milesBetween } from "@/lib/geo"
 import { parseTicketmaster } from "@/lib/gigs/ticketmaster"
 import { gigPlaylistDescription } from "@/lib/playlist"
 import type { Gig } from "@/lib/gigs/types"
@@ -29,9 +33,11 @@ describe("gig providers", () => {
     )
   })
 
-  it("parses a Skiddle bill and keeps a Ticketmaster music event in southwest London", async () => {
+  it("parses a Skiddle bill and keeps London events from every tile", async () => {
+    const centres = new Set<string>()
     const fetchImpl = mockFetch((url) => {
       if (url.hostname === "www.skiddle.com") {
+        centres.add(`${url.searchParams.get("latitude")},${url.searchParams.get("longitude")}`)
         expect(url.searchParams.get("api_key")).toBe("skiddle-key")
         expect(url.searchParams.get("radius")).toBe("8")
         expect(url.searchParams.get("minDate")).toBe("2026-10-11")
@@ -54,9 +60,10 @@ describe("gig providers", () => {
     expect(names).toContain("Wet Leg")
     expect(names).toContain("Touring Guest")
     expect(names).not.toContain("Golf Classic")
-    expect(names).not.toContain("Brixton Headliner")
+    expect(names).toContain("Brixton Headliner")
     expect(feed.gigs.filter((gig) => gig.artistNames.includes("Wet Leg"))).toHaveLength(1)
     expect(feed.gigs.some((gig) => gig.postcode === "M1 1AE")).toBe(false)
+    expect(centres.size).toBeGreaterThan(1)
 
     const nearPutney = selectGigs(feed.gigs, { kind: "postcode", postcode: "SW15" }, "upcoming", NOW)
     expect(nearPutney.some((gig) => gig.artistNames.includes("Touring Guest"))).toBe(true)
@@ -68,6 +75,17 @@ describe("gig providers", () => {
 
     const later = selectGigs(feed.gigs, { kind: "southwest" }, "later", NOW)
     expect(later.map((gig) => gig.artistNames[0])).toEqual(["Too Late", "Wimbledon Opener"])
+
+    const city = selectGigs(feed.gigs, { kind: "london" }, "week", NOW)
+    expect(city.some((gig) => gig.artistNames.includes("Brixton Headliner"))).toBe(true)
+    const southwest = selectGigs(feed.gigs, { kind: "region", regionId: "southwest" }, "week", NOW)
+    expect(southwest.some((gig) => gig.artistNames.includes("Brixton Headliner"))).toBe(true)
+    expect(southwest.some((gig) => gig.artistNames.includes("Wet Leg"))).toBe(true)
+    const east = selectGigs(feed.gigs, { kind: "region", regionId: "east" }, "week", NOW)
+    expect(east).toEqual([])
+    const counts = weekCountsByRegion(feed.gigs, NOW)
+    expect(counts.find((row) => row.id === "southwest")?.count).toBeGreaterThan(0)
+    expect(counts.reduce((sum, row) => sum + row.count, 0)).toBe(city.length)
   })
 
   it("keeps the other provider when one request fails, and does not echo the key", async () => {
@@ -91,7 +109,7 @@ describe("gig providers", () => {
     expect(feed.gigs).toEqual([])
   })
 
-  it("pages Skiddle when the first page is full", async () => {
+  it("pages one Skiddle tile when the first page is full", async () => {
     const offsets: string[] = []
     const fetchImpl = mockFetch((url) => {
       offsets.push(`${url.searchParams.get("eventcode")}:${url.searchParams.get("offset")}`)
@@ -111,8 +129,22 @@ describe("gig providers", () => {
         },
       }
     })
-    await collectRegionalGigs({ env: env({ SKIDDLE_API_KEY: "skiddle-key" }), fetchImpl, now: NOW })
+    await skiddleProvider.search(
+      { latitude: 51.5, longitude: -0.12, radiusMiles: 8, from: "2026-10-11", to: "2027-01-09" },
+      { env: env({ SKIDDLE_API_KEY: "skiddle-key" }), fetchImpl, paceMs: 0 },
+    )
     expect(offsets.sort()).toEqual(["CLUB:0", "LIVE:0", "LIVE:100"])
+  })
+
+  it("covers every Greater London district with an overlapping tile", () => {
+    const tiles = londonSearchTiles()
+    expect(tiles.length).toBeGreaterThan(4)
+    expect(tiles.length).toBeLessThanOrEqual(24)
+    expect(tiles.every((tile) => tile.radiusMiles === TILE_RADIUS_MILES)).toBe(true)
+    const missed = LONDON_DISTRICTS.filter(
+      (district) => !tiles.some((tile) => milesBetween(tile, district) <= TILE_RADIUS_MILES),
+    )
+    expect(missed).toEqual([])
   })
 })
 
@@ -125,6 +157,25 @@ describe("gig selection", () => {
     expect(outwardCode("not a postcode")).toBeNull()
     expect(londonDate(NOW)).toBe("2026-10-11")
     expect(addDays("2026-10-11", 6)).toBe("2026-10-17")
+  })
+
+  it("keeps an unmatched London room beside the gig and files it by region", () => {
+    const unmatched = gig({
+      id: "e8-room",
+      artistNames: ["Hackney Bill"],
+      venueName: "The Unlisted Room",
+      postcode: "E8 3RL",
+      latitude: 51.54,
+      longitude: -0.06,
+      date: "2026-10-12",
+    })
+    const week = selectGigs([unmatched], { kind: "region", regionId: "east" }, "week", NOW)
+    expect(week).toHaveLength(1)
+    expect(week[0]?.venueId).toBeNull()
+    expect(listingVenues(week)).toEqual([
+      { id: "listing-unlisted-room-e8", name: "The Unlisted Room", postcode: "E8 3RL", district: "E8" },
+    ])
+    expect(weekCountsByRegion([unmatched], NOW).find((row) => row.id === "east")?.count).toBe(1)
   })
 
   it("matches a Putney room and leaves a Manchester one alone", () => {

@@ -104,7 +104,7 @@ export const REGIONS: Region[] = [
     name: "Southwest London",
     group: "inner",
     intro:
-      "The SW districts, from Chelsea and Battersea down through Clapham, Brixton, Putney, and Wimbledon. This is also where the live gig search is centred, so a visitor can often see a bill for this week.",
+      "The SW districts, from Chelsea and Battersea down through Clapham, Brixton, Putney, and Wimbledon. This week's bills for these districts are on this page.",
     knownFor: "Brixton, the Putney Half Moon, and a long pub-gig circuit out to Wimbledon.",
     areas: [
       {

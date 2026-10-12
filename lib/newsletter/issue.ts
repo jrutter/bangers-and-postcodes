@@ -91,7 +91,7 @@ export function isThursdayMorningLondon(now: Date): boolean {
 }
 
 export function issueSubject(codes: string[]): string {
-  if (codes.length === 0) return "This week in southwest London"
+  if (codes.length === 0) return "This week in London"
   if (codes.length === 1) return `This week in ${codes[0]}`
   if (codes.length === 2) return `This week in ${codes[0]} and ${codes[1]}`
   return `This week in ${codes.slice(0, -1).join(", ")}, and ${codes[codes.length - 1]}`

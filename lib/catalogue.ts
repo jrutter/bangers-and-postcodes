@@ -134,14 +134,14 @@ export function scopeLabel(scope: Scope): string {
   if (scope.kind === "postcode") return scope.postcode
   if (scope.kind === "area") return placeById(scope.placeId)?.name ?? scope.placeId
   if (scope.kind === "venue") return venueById(scope.venueId)?.name ?? "Venue"
-  if (scope.focus === "all") return "This week in SW London"
+  if (scope.focus === "all") return "This week in London"
   if ("postcode" in scope.focus) return `This week near ${scope.focus.postcode}`
   return `This week around ${placeById(scope.focus.placeId)?.name ?? "this area"}`
 }
 
 export function gigScopePhrase(scope: Extract<Scope, { kind: "week" | "venue" }>): string {
   if (scope.kind === "venue") return `at ${venueById(scope.venueId)?.name ?? "this venue"}`
-  if (scope.focus === "all") return "in southwest London in the next 7 days"
+  if (scope.focus === "all") return "in London in the next 7 days"
   if ("postcode" in scope.focus) return `near ${scope.focus.postcode} in the next 7 days`
   return `around ${placeById(scope.focus.placeId)?.name ?? "this area"} in the next 7 days`
 }

@@ -142,7 +142,7 @@ export async function PlaylistPanel({
               ))}
             </optgroup>
             <optgroup label="This week's gigs">
-              <option value="week:all">This week across southwest London</option>
+              <option value="week:all">This week across London</option>
               {cataloguePostcodes().map((postcode) => (
                 <option key={`week-${postcode}`} value={`week:${postcode}`}>
                   This week near {postcode}
