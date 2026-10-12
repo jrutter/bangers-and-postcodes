@@ -1,3 +1,4 @@
+import { billPieces, spotifyArtistIdFrom } from "@/lib/gigs/bill"
 import { GIG_MAX_PAGES, GIG_PAGE_SIZE } from "@/lib/gigs/constants"
 import { GigProviderError, asRecord, getJson, httpsUrl, numberField, stringField } from "@/lib/gigs/http"
 import type { Gig, GigDeps, GigProvider, GigSearch } from "@/lib/gigs/types"
@@ -80,14 +81,15 @@ function parseEvent(value: unknown): Gig | null {
   if (!date) return null
   const opening = asRecord(record.openingtimes)
   const doorTime = clock(stringField(opening, "doorsopen")) || dated.doorTime
-  const artists = artistNames(record)
-  const title = stringField(record, "eventname", "name") || artists[0] || venueName
-  const names = artists.length > 0 ? artists : fallbackArtist(title, venueName)
+  const listed = listedArtists(record)
+  const title = stringField(record, "eventname", "name") || listed.names[0] || venueName
+  const names = listed.names.length > 0 ? listed.names : fallbackArtist(title, venueName)
   return {
     id: `skiddle:${id}`,
     provider: "skiddle",
     title,
     artistNames: names,
+    ...(Object.keys(listed.ids).length > 0 ? { artistSpotifyIds: listed.ids } : {}),
     venueName,
     address: stringField(venue, "address") || stringField(record, "address"),
     town: stringField(venue, "town") || stringField(record, "town"),
@@ -101,18 +103,28 @@ function parseEvent(value: unknown): Gig | null {
   }
 }
 
-function artistNames(record: Record<string, unknown>): string[] {
+function listedArtists(record: Record<string, unknown>): { names: string[]; ids: Record<string, string> } {
   const raw = record.artists ?? record.artist
-  if (!Array.isArray(raw)) return []
+  const items = Array.isArray(raw) ? raw : typeof raw === "string" && raw.trim() ? [raw] : []
   const names: string[] = []
-  for (const item of raw) {
-    if (typeof item === "string" && item.trim()) names.push(item.trim())
-    else {
-      const name = stringField(asRecord(item), "name")
-      if (name) names.push(name)
+  const ids: Record<string, string> = {}
+  for (const item of items) {
+    if (typeof item === "string" && item.trim()) {
+      names.push(item.trim())
+      continue
     }
+    const artist = asRecord(item)
+    const name = stringField(artist, "name", "artistname")
+    if (!name) continue
+    names.push(name)
+    const spotifyId = spotifyArtistIdFrom(
+      stringField(artist, "spotifyartisturl", "spotifyurl", "spotify_url", "spotify", "spotifyartistid", "spotifyid"),
+    )
+    if (!spotifyId) continue
+    const primary = billPieces(name).find((piece) => piece.role === "primary")?.name ?? name
+    if (!ids[primary]) ids[primary] = spotifyId
   }
-  return names
+  return { names, ids }
 }
 
 function fallbackArtist(title: string, venueName: string): string[] {

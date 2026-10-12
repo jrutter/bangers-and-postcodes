@@ -1,4 +1,5 @@
 import { openSpotifyPlaylist } from "@/lib/format"
+import { billPieces, foldName, pickGigArtist, spotifyArtistIdFrom } from "@/lib/gigs/bill"
 import { chooseArtist, chooseTrack, metricsFromArtist } from "@/lib/names"
 import { API_ROOT, TOKEN_URL, envValue, redirectUri } from "@/lib/oauth"
 import { chunk } from "@/lib/playlist"
@@ -137,6 +138,19 @@ export function createSpotify(options?: { fetch?: FetchLike; env?: SpotifyEnv })
       })
       return uris.filter((uri): uri is string => Boolean(uri))
     },
+    /**
+     * Gig bills. The catalogue path stays an exact quoted search.
+     * A bill is kept whole when that string clears the confidence bar, otherwise each
+     * featured name is tried. Anything under the bar stays unmatched.
+     */
+    async matchGigLineup(artists: ArtistRecord[], hints?: ReadonlyMap<string, string>): Promise<MatchedArtist[]> {
+      const accessToken = () => this.accessToken()
+      const looseCache = new Map<string, LooseArtist | null>()
+      const rows = await mapPool(artists, 4, (artist) =>
+        resolveGigBill(fetchImpl, accessToken, artist, hints, looseCache),
+      )
+      return rows.flat()
+    },
     async exchangeCode(code: string): Promise<TokenBundle> {
       return tokenRequest(fetchImpl, clientId(), clientSecret(), {
         grant_type: "authorization_code",
@@ -256,11 +270,103 @@ async function matchOne(
 
   const chosen = chooseArtist(candidates as Parameters<typeof chooseArtist>[0], name)
   if (!chosen?.id) return { ...artist, spotify: null }
+  return completeMatch(fetchImpl, accessToken, artist, chosen, name)
+}
 
+type LooseArtist = {
+  id?: string
+  name?: string
+  popularity?: number
+  followers?: { total?: number }
+  images?: { url?: string }[]
+  external_urls?: { spotify?: string }
+}
+
+async function resolveGigBill(
+  fetchImpl: FetchLike,
+  accessToken: () => Promise<string>,
+  artist: ArtistRecord,
+  hints: ReadonlyMap<string, string> | undefined,
+  looseCache: Map<string, LooseArtist | null>,
+): Promise<MatchedArtist[]> {
+  const hinted = await artistFromHint(fetchImpl, accessToken, artist.name, hints)
+  if (hinted?.id) return [await completeMatch(fetchImpl, accessToken, artist, hinted, hinted.name || artist.name)]
+  const full = await looseArtist(fetchImpl, accessToken, artist.name, looseCache)
+  if (full?.id) return [await completeMatch(fetchImpl, accessToken, artist, full, full.name || artist.name)]
+  const pieces = billPieces(artist.name).filter((piece) => foldName(piece.name) !== foldName(artist.name))
+  const rows: MatchedArtist[] = []
+  for (const piece of pieces) {
+    const named = { ...artist, name: piece.name, sort_name: piece.name }
+    const hintedPiece = await artistFromHint(fetchImpl, accessToken, piece.name, hints)
+    const found = hintedPiece?.id ? hintedPiece : await looseArtist(fetchImpl, accessToken, piece.name, looseCache)
+    if (found?.id) rows.push(await completeMatch(fetchImpl, accessToken, named, found, found.name || piece.name))
+    else if (piece.role !== "subtitle") rows.push({ ...named, spotify: null })
+  }
+  if (rows.length === 0) return [{ ...artist, spotify: null }]
+  return rows
+}
+
+async function artistFromHint(
+  fetchImpl: FetchLike,
+  accessToken: () => Promise<string>,
+  name: string,
+  hints: ReadonlyMap<string, string> | undefined,
+): Promise<LooseArtist | null> {
+  const id = spotifyArtistIdFrom(hints?.get(foldName(name)))
+  if (!id) return null
+  try {
+    const payload = await apiSend(fetchImpl, "GET", `/artists/${encodeURIComponent(id)}`, { token: await accessToken() })
+    return typeof payload.id === "string" ? (payload as LooseArtist) : null
+  } catch (error) {
+    if (error instanceof SpotifyError && (error.status === 401 || error.status === 429)) throw error
+    return null
+  }
+}
+
+async function looseArtist(
+  fetchImpl: FetchLike,
+  accessToken: () => Promise<string>,
+  name: string,
+  cache: Map<string, LooseArtist | null>,
+): Promise<LooseArtist | null> {
+  const key = foldName(name)
+  if (!key) return null
+  if (cache.has(key)) return cache.get(key) ?? null
+  let candidates: LooseArtist[] = []
+  try {
+    const payload = await apiSend(fetchImpl, "GET", "/search", {
+      token: await accessToken(),
+      params: { q: name.replace(/["\\]/g, " ").replace(/\s+/g, " ").trim().slice(0, 200), type: "artist", limit: "8" },
+    })
+    const block = payload.artists
+    const items =
+      block && typeof block === "object" && Array.isArray((block as { items?: unknown }).items)
+        ? ((block as { items: LooseArtist[] }).items ?? [])
+        : []
+    candidates = items
+  } catch (error) {
+    if (error instanceof SpotifyError && (error.status === 401 || error.status === 429)) throw error
+    cache.set(key, null)
+    return null
+  }
+  const picked = pickGigArtist(name, candidates)
+  const chosen = picked?.artist.id ? picked.artist : null
+  cache.set(key, chosen)
+  return chosen
+}
+
+async function completeMatch(
+  fetchImpl: FetchLike,
+  accessToken: () => Promise<string>,
+  artist: ArtistRecord,
+  chosen: LooseArtist,
+  searchName: string,
+): Promise<MatchedArtist> {
+  if (!chosen.id) return { ...artist, spotify: null }
   let profile = metricsFromArtist(chosen)
   if (profile.popularity === null || profile.followers === null) {
     try {
-      const fetched = await apiSend(fetchImpl, "GET", `/artists/${chosen.id}`, { token: await accessToken() })
+      const fetched = await apiSend(fetchImpl, "GET", `/artists/${encodeURIComponent(chosen.id)}`, { token: await accessToken() })
       const filled = metricsFromArtist(fetched)
       for (const key of ["followers", "popularity", "url", "image", "name"] as const) {
         if (profile[key] == null && filled[key] != null) profile = { ...profile, [key]: filled[key] }
@@ -272,7 +378,7 @@ async function matchOne(
 
   let track = null
   try {
-    const payload = await apiSend(fetchImpl, "GET", `/artists/${chosen.id}/top-tracks`, {
+    const payload = await apiSend(fetchImpl, "GET", `/artists/${encodeURIComponent(chosen.id)}/top-tracks`, {
       token: await accessToken(),
       params: { market: "GB" },
     })
@@ -285,7 +391,7 @@ async function matchOne(
     try {
       const payload = await apiSend(fetchImpl, "GET", "/search", {
         token: await accessToken(),
-        params: { q: `artist:"${name.replace(/"/g, "")}"`, type: "track", limit: "5", market: "GB" },
+        params: { q: `artist:"${searchName.replace(/"/g, "")}"`, type: "track", limit: "5", market: "GB" },
       })
       const block = payload.tracks
       const items =
