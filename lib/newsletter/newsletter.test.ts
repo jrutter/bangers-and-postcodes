@@ -113,6 +113,30 @@ describe("newsletter issue", () => {
     expect(issue.forYouUrl).toBe(`${SITE}/postcode/sw15`)
   })
 
+  it("includes a gig in any subscribed district, including ones outside the old southwest sweep", () => {
+    const issue = buildIssue({
+      areas: ["E8"],
+      gigs: [
+        gig({
+          id: "hackney",
+          date: "2026-10-16",
+          postcode: "E8 3RL",
+          artistNames: ["Hackney Bill"],
+          venueName: "The Unlisted Room",
+          latitude: 51.54,
+          longitude: -0.06,
+        }),
+      ],
+      now: NOW,
+      siteUrl: SITE,
+      artists: ARTISTS,
+    })
+    expect(issue.meaningful).toBe(true)
+    expect(issue.subject).toBe("This week in E8")
+    expect(issue.areas[0]?.gigs[0]?.title).toBe("Hackney Bill")
+    expect(issue.areas[0]?.gigs[0]?.venueUrl).toBeNull()
+  })
+
   it("drops an insecure ticket link and skips a week with no gigs", () => {
     const quiet = buildIssue({
       areas: ["SW15"],

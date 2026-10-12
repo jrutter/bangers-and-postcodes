@@ -39,6 +39,8 @@ export type GigFeed = {
   from: string
   to: string
   cacheKey?: string
+  /** A tile or page was skipped because the request budget for this refresh ran out. */
+  truncated?: boolean
 }
 
 export type GigSearch = {
@@ -52,6 +54,10 @@ export type GigSearch = {
 export type GigDeps = {
   fetchImpl?: typeof fetch
   env?: NodeJS.ProcessEnv
+  /** Gap before each HTTP call for this provider. Tests pass 0. */
+  paceMs?: number
+  /** Shared counter. Each HTTP call spends one. Omitted means unlimited. */
+  requests?: { current: number }
 }
 
 export type GigProvider = {
@@ -62,7 +68,9 @@ export type GigProvider = {
 }
 
 export type GigSelection =
+  | { kind: "london" }
   | { kind: "southwest" }
+  | { kind: "region"; regionId: string }
   | { kind: "postcode"; postcode: string }
   | { kind: "place"; placeId: string }
   | { kind: "venue"; venueId: string }

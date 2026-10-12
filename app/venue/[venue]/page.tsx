@@ -9,7 +9,7 @@ import { areaPath, knownPostcode, placeById, postcodePath } from "@/lib/catalogu
 import { regionForPostcode, regionPath } from "@/lib/regions"
 import { venueById, venueTypeLabel, venues } from "@/lib/venues"
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 export function generateStaticParams() {
   return venues().map((venue) => ({ venue: venue.id }))

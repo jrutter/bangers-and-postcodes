@@ -1,6 +1,7 @@
 import { billPieces, spotifyArtistIdFrom } from "@/lib/gigs/bill"
 import { GIG_MAX_PAGES, GIG_PAGE_SIZE } from "@/lib/gigs/constants"
 import { GigProviderError, asRecord, getJson, httpsUrl, numberField, stringField } from "@/lib/gigs/http"
+import { pace, takeRequest } from "@/lib/gigs/pace"
 import type { Gig, GigDeps, GigProvider, GigSearch } from "@/lib/gigs/types"
 import { envValue } from "@/lib/oauth"
 
@@ -18,8 +19,11 @@ export const skiddleProvider: GigProvider = {
     const apiKey = envValue("SKIDDLE_API_KEY", env)
     if (!apiKey) return []
     const fetchImpl = deps?.fetchImpl ?? fetch
-    const batches = await Promise.all(EVENT_CODES.map((code) => searchCode(fetchImpl, apiKey, query, code)))
-    return batches.flat()
+    const gigs: Gig[] = []
+    for (const code of EVENT_CODES) {
+      gigs.push(...(await searchCode(fetchImpl, apiKey, query, code, deps)))
+    }
+    return gigs
   },
 }
 
@@ -28,9 +32,12 @@ async function searchCode(
   apiKey: string,
   query: GigSearch,
   eventCode: (typeof EVENT_CODES)[number],
+  deps?: GigDeps,
 ): Promise<Gig[]> {
   const gigs: Gig[] = []
   for (let page = 0; page < GIG_MAX_PAGES; page += 1) {
+    if (!takeRequest(deps?.requests)) break
+    await pace("skiddle", deps?.paceMs ?? 0)
     const offset = page * GIG_PAGE_SIZE
     const url = new URL(SEARCH_URL)
     url.searchParams.set("api_key", apiKey)

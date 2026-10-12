@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   description: "Music venues across Greater London, with upcoming gigs when a listings key is set.",
 }
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 export default function VenuesPage(props: PageProps<"/venues">) {
   return (
@@ -39,8 +39,8 @@ export default function VenuesPage(props: PageProps<"/venues">) {
         <p className="text-base leading-7 text-muted-foreground">
           Music venues from the GLA Cultural Infrastructure Map and OpenStreetMap, plus the hand-checked southwest
           rooms. Pryzm Kingston, at 154 Clarence Street, KT1 1QP, closed in July 2025, so it is not listed. Gig dates
-          come from Skiddle or Ticketmaster when a listing falls inside the southwest search. Other rooms still have a
-          page and a playlist of whoever the feeds attach to that room.
+          come from Skiddle or Ticketmaster when a listing matches the room by name and postcode. A bill whose room is
+          not in this guide still shows on the region and area pages.
         </p>
       </header>
       <Suspense fallback={<p className="text-sm text-muted-foreground">Checking venues…</p>}>
@@ -67,7 +67,7 @@ async function VenuesBody({ searchParams }: { searchParams: PageProps<"/venues">
   if (sortTaste) {
     const feed = await loadRegionalGigs(gigProviderFingerprint())
     const configured = feed.providers.some((provider) => provider.configured)
-    const upcoming = selectGigs(feed.gigs, { kind: "southwest" }, "upcoming", new Date())
+    const upcoming = selectGigs(feed.gigs, { kind: "london" }, "upcoming", new Date())
     const byVenue = new Map<string, { artistNames: string[] }[]>()
     for (const gig of upcoming) {
       if (!gig.venueId) continue

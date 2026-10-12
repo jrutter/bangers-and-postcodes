@@ -11,10 +11,10 @@ import { loadTasteSession, tasteAccess } from "@/lib/taste-session"
 
 export const metadata: Metadata = {
   title: "Gigs",
-  description: "Gigs this week in southwest London, the part of town the live search covers, with Spotify links for the artists on the bill.",
+  description: "Gigs this week across Greater London, with Spotify links for the artists on the bill.",
 }
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 export default function GigsPage(props: PageProps<"/gigs">) {
   return (
@@ -23,9 +23,8 @@ export default function GigsPage(props: PageProps<"/gigs">) {
         <p className="text-sm font-medium tracking-[0.16em] text-info uppercase">This week</p>
         <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-5xl">Gigs</h1>
         <p className="text-base leading-7 text-muted-foreground">
-          Upcoming shows a visitor can reach in southwest London: Barnes, Putney, Richmond, Kingston, Wimbledon, Fulham,
-          Wandsworth, Twickenham, and Balham. The search stays inside about 8 miles of those rooms. Other parts of
-          London list their venues on the region pages, and a bill appears there when a listing matches the room.
+          Upcoming shows across Greater London. The search is split into overlapping 8 mile tiles so each part of the
+          city is covered, then cached for about six hours. A region or area page shows what is on there this week.
         </p>
       </header>
       <Suspense fallback={<p className="text-sm text-muted-foreground">Checking gig listings…</p>}>
@@ -53,8 +52,8 @@ async function GigsBody({
       <GigSection
         feed={feed}
         heading="This week"
-        intro="Artists with a gig in the next 7 days. The playlist uses this set."
-        selection={{ kind: "southwest" }}
+        intro="Artists with a gig in the next 7 days, anywhere in Greater London. The playlist uses this set."
+        selection={{ kind: "london" }}
         span="week"
         playlistScope={{ kind: "week", focus: "all" }}
         playlistLabel="This week's gigs playlist"
@@ -64,8 +63,8 @@ async function GigsBody({
       <GigSection
         feed={feed}
         heading="Later"
-        intro="The same area, after this week, inside the cached listings window."
-        selection={{ kind: "southwest" }}
+        intro="After this week, inside the cached listings window, still inside Greater London."
+        selection={{ kind: "london" }}
         span="later"
         emptyLabel="No later gigs were listed."
         sortTaste={sortTaste}

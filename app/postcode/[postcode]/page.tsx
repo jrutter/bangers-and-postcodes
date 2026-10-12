@@ -8,7 +8,7 @@ import { parseEra } from "@/lib/era"
 import { areaInfo, regionPath } from "@/lib/regions"
 import { filterVenues, venues } from "@/lib/venues"
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 export function generateStaticParams() {
   return postcodes().map((postcode) => ({ postcode: postcode.toLowerCase() }))
@@ -75,12 +75,12 @@ async function PostcodeBody({
       places={placeLinks(areas)}
       scope={{ kind: "postcode", postcode: code }}
       gigs={{
-        heading: `Local gigs near ${code}`,
-        intro: `Shows listed around ${code}, including touring artists at local venues. This is not limited to the catalogue above.`,
+        heading: "What's on this week",
+        intro: `Shows listed around ${code} in the next 7 days, including touring artists at local venues. This is not limited to the catalogue above.`,
         selection: { kind: "postcode", postcode: code },
         playlistScope: { kind: "week", focus: { postcode: code } },
         playlistLabel: "This week's gigs playlist",
-        emptyLabel: `No upcoming gigs were listed near ${code}.`,
+        emptyLabel: `Nothing is listed near ${code} this week.`,
       }}
     />
   )

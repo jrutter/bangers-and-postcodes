@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 export default function PreviewPage({
   searchParams,

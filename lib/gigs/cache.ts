@@ -6,7 +6,8 @@ import { gigProviderFingerprint } from "@/lib/gigs/providers"
 import type { GigFeed } from "@/lib/gigs/types"
 
 /**
- * One regional pull for every page. The fingerprint is part of the cache key,
+ * One city-wide pull for every page. Tiles are fetched once and kept for about six hours.
+ * The fingerprint is part of the cache key,
  * so adding a provider key starts a fresh entry instead of reusing an empty one.
  * Callers must run this at request time (after connection()) so `next build`
  * does not call the providers.

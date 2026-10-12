@@ -1,4 +1,5 @@
 import { placeById, type Scope } from "@/lib/catalogue"
+import { districtPoint, LONDON_DISTRICTS } from "@/lib/districts"
 import {
   NEAR_MILES,
   VENUE_MATCH_MILES,
@@ -8,13 +9,13 @@ import {
 import type { Gig, GigSelection, TaggedGig } from "@/lib/gigs/types"
 import {
   addDays,
-  centroid,
   coveredPostcodes,
   londonDate,
   milesBetween,
   outwardCode,
 } from "@/lib/geo"
 import { namesMatch, normalizeName } from "@/lib/names"
+import { districtInRegion, regionForPostcode, regions } from "@/lib/regions"
 import type { ArtistRecord } from "@/lib/types"
 import { samePostcode, venueById, venues, type Venue } from "@/lib/venues"
 
@@ -72,6 +73,62 @@ export function inSouthwest(gig: Gig): boolean {
   if (code) return coveredPostcodes().includes(code)
   if (venueForGig(gig)) return true
   return coveredPostcodes().some((postcode) => nearPostcode(gig, postcode, NEAR_MILES))
+}
+
+/** A listing counts when its postcode, matched venue, or coordinates sit in Greater London. */
+export function inLondon(gig: Gig): boolean {
+  return assignedDistrict(gig) != null
+}
+
+export function assignedDistrict(gig: Pick<Gig, "venueName" | "postcode" | "latitude" | "longitude">): string | null {
+  const venue = venueForGig(gig)
+  const fromVenue = venue?.postcodeDistrict ?? (venue ? outwardCode(venue.postcode) : null)
+  if (fromVenue && districtPoint(fromVenue)) return fromVenue
+  const code = outwardCode(gig.postcode)
+  if (code && districtPoint(code)) return code
+  return nearestDistrict(gig)
+}
+
+export type ListingVenue = {
+  id: string
+  name: string
+  postcode: string | null
+  district: string | null
+}
+
+/** Rooms on a bill that did not match the curated venue file. One row per name and district. */
+export function listingVenues(gigs: TaggedGig[]): ListingVenue[] {
+  const seen = new Set<string>()
+  const rooms: ListingVenue[] = []
+  for (const gig of gigs) {
+    if (gig.venueId) continue
+    const name = gig.venueName.trim()
+    if (!name) continue
+    const district = assignedDistrict(gig)
+    const id = listingVenueId(name, district)
+    if (seen.has(id)) continue
+    seen.add(id)
+    rooms.push({ id, name, postcode: gig.postcode, district })
+  }
+  rooms.sort((left, right) => left.name.localeCompare(right.name, "en"))
+  return rooms
+}
+
+export function listingVenueId(name: string, district: string | null): string {
+  const slug = normalizeName(name).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "room"
+  return `listing-${slug}${district ? `-${district.toLowerCase()}` : ""}`
+}
+
+export function weekCountsByRegion(gigs: Gig[], now: Date): { id: string; name: string; count: number }[] {
+  const week = selectGigs(gigs, { kind: "london" }, "week", now)
+  const counts = new Map(regions().map((region) => [region.id, 0]))
+  for (const gig of week) {
+    const district = assignedDistrict(gig)
+    const region = district ? regionForPostcode(district) : null
+    if (!region) continue
+    counts.set(region.id, (counts.get(region.id) ?? 0) + 1)
+  }
+  return regions().map((region) => ({ id: region.id, name: region.name, count: counts.get(region.id) ?? 0 }))
 }
 
 export function selectGigs(gigs: Gig[], selection: GigSelection, span: "upcoming" | "week" | "later", now: Date): TaggedGig[] {
@@ -138,7 +195,7 @@ export function selectionForScope(scope: Extract<Scope, { kind: "week" | "venue"
   span: "week" | "upcoming"
 } {
   if (scope.kind === "venue") return { selection: { kind: "venue", venueId: scope.venueId }, span: "upcoming" }
-  if (scope.focus === "all") return { selection: { kind: "southwest" }, span: "week" }
+  if (scope.focus === "all") return { selection: { kind: "london" }, span: "week" }
   if ("postcode" in scope.focus) return { selection: { kind: "postcode", postcode: scope.focus.postcode }, span: "week" }
   return { selection: { kind: "place", placeId: scope.focus.placeId }, span: "week" }
 }
@@ -177,7 +234,12 @@ export function formatGigWhen(gig: Pick<Gig, "startsAt" | "date" | "doorTime">):
 }
 
 function matchesSelection(gig: Gig, selection: GigSelection): boolean {
+  if (selection.kind === "london") return inLondon(gig)
   if (selection.kind === "southwest") return inSouthwest(gig)
+  if (selection.kind === "region") {
+    const district = assignedDistrict(gig)
+    return Boolean(district && districtInRegion(district, selection.regionId))
+  }
   if (selection.kind === "postcode") return matchesPostcode(gig, selection.postcode)
   if (selection.kind === "place") return matchesPlace(gig, selection.placeId)
   const venue = venueById(selection.venueId)
@@ -201,9 +263,20 @@ function matchesPostcode(gig: Gig, postcode: string): boolean {
 
 function nearPostcode(gig: Pick<Gig, "latitude" | "longitude">, postcode: string, miles: number): boolean {
   if (gig.latitude == null || gig.longitude == null) return false
-  const point = centroid(postcode)
+  const point = districtPoint(postcode)
   if (!point) return false
   return milesBetween({ latitude: gig.latitude, longitude: gig.longitude }, point) <= miles
+}
+
+function nearestDistrict(gig: Pick<Gig, "latitude" | "longitude">): string | null {
+  if (gig.latitude == null || gig.longitude == null) return null
+  let best: { code: string; miles: number } | null = null
+  for (const district of LONDON_DISTRICTS) {
+    const miles = milesBetween({ latitude: gig.latitude, longitude: gig.longitude }, district)
+    if (miles > NEAR_MILES) continue
+    if (!best || miles < best.miles) best = { code: district.postcode, miles }
+  }
+  return best?.code ?? null
 }
 
 function isNearVenue(gig: Pick<Gig, "latitude" | "longitude">, venue: Venue): boolean {

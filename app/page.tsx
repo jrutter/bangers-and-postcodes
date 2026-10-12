@@ -15,6 +15,8 @@ import { TAGLINE } from "@/lib/format"
 import { artistsInRegion, districtInRegion, regions } from "@/lib/regions"
 import { curatedVenues, filterVenues, venuePath, venues } from "@/lib/venues"
 
+export const maxDuration = 120
+
 export default function HomePage() {
   const precision = homePrecision()
   const boroughs = homePlaceCounts().filter((place) => place.precision === "borough")
@@ -61,7 +63,7 @@ export default function HomePage() {
       </Suspense>
 
       <Suspense fallback={<p className="text-sm text-muted-foreground">Checking your Spotify taste…</p>}>
-        <ForYou artists={artists()} selection={{ kind: "southwest" }} returnTo="/" />
+        <ForYou artists={artists()} selection={{ kind: "london" }} returnTo="/" />
       </Suspense>
 
       <Suspense fallback={<p className="text-sm text-muted-foreground">Checking which of your artists are from England…</p>}>
@@ -71,8 +73,8 @@ export default function HomePage() {
       <Suspense fallback={<p className="text-sm text-muted-foreground">Checking listings for this week…</p>}>
         <GigSection
           heading="Gigs you can catch this week"
-          intro="The live search covers southwest London, about 8 miles around Putney, Richmond, Kingston, and Wimbledon, so these are bills a visitor can actually get to. Other regions list their venues even when the search has no date yet."
-          selection={{ kind: "southwest" }}
+          intro="Live and club listings across Greater London for the next 7 days. Each region and area page shows the bills in that part of town."
+          selection={{ kind: "london" }}
           span="week"
           playlistScope={{ kind: "week", focus: "all" }}
           playlistLabel="This week's gigs playlist"

@@ -9,7 +9,7 @@ import { placeGigPostcodes } from "@/lib/gigs/select"
 import { areaInfo, regionPath } from "@/lib/regions"
 import { venues } from "@/lib/venues"
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 export function generateStaticParams() {
   return places().map((place) => ({ place: place.id }))
@@ -77,12 +77,12 @@ async function AreaBody({
       places={postcodeLinks(place.postcodes)}
       scope={{ kind: "area", placeId: place.id }}
       gigs={{
-        heading: `Upcoming gigs around ${place.name}`,
-        intro: `Shows listed for ${codeLabel}, including touring artists. Borough pages keep the wider postcodes separate from a single district.`,
+        heading: "What's on this week",
+        intro: `Shows listed for ${codeLabel} in the next 7 days, including touring artists. Borough pages keep the wider postcodes separate from a single district.`,
         selection: { kind: "place", placeId: place.id },
         playlistScope: { kind: "week", focus: { placeId: place.id } },
         playlistLabel: "This week's gigs playlist",
-        emptyLabel: `No upcoming gigs were listed around ${place.name}.`,
+        emptyLabel: `Nothing is listed around ${place.name} this week.`,
       }}
     />
   )

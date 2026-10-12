@@ -99,7 +99,7 @@ export async function LocalityBody({
         heading={gigs.heading}
         intro={gigs.intro}
         selection={gigs.selection}
-        span="upcoming"
+        span="week"
         playlistScope={gigs.playlistScope}
         playlistLabel={gigs.playlistLabel}
         emptyLabel={gigs.emptyLabel}
