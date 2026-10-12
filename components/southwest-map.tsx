@@ -8,6 +8,7 @@ import "maplibre-gl/dist/maplibre-gl.css"
 import { LinkButton } from "@/components/link-button"
 import type { MapDistrict, MapModel, MapVenuePin } from "@/lib/map-model"
 import { MAP_ATTRIBUTION, MAP_STYLE_URL } from "@/lib/map-style"
+import { captureClient } from "@/lib/posthog-browser"
 import { regionForPostcode, regions, regionPath } from "@/lib/regions"
 import boundaries from "@/data/postcode-districts.json"
 
@@ -36,6 +37,16 @@ export function SouthwestMap({ model }: { model: MapModel }) {
   const [mapProblem, setMapProblem] = useState<string | null>(null)
   const selectedDistrict = model.districts.find((district) => selection?.kind === "district" && district.postcode === selection.id)
   const selectedVenue = model.venues.find((venue) => selection?.kind === "venue" && venue.id === selection.id)
+
+  function selectPlace(next: Selection) {
+    setSelection(next)
+    if (next.kind === "district") {
+      captureClient("map_area_clicked", { kind: "district", postcode: next.id, area: next.id })
+      return
+    }
+    const venue = model.venues.find((item) => item.id === next.id)
+    captureClient("map_area_clicked", { kind: "venue", venue: next.id, area: venue?.postcode ?? "" })
+  }
 
   useEffect(() => {
     const element = container.current
@@ -178,10 +189,14 @@ export function SouthwestMap({ model }: { model: MapModel }) {
           const region = regionForPostcode(postcode)
           const focus = modelRef.current.focusRegionId
           if (!region || focus !== region.id) {
-            if (region) openRegion(region.id)
+            if (region) {
+              captureClient("map_area_clicked", { kind: "region", region: region.id, area: postcode })
+              openRegion(region.id)
+            }
             return
           }
           setSelection({ kind: "district", id: postcode })
+          captureClient("map_area_clicked", { kind: "district", postcode, area: postcode })
         })
         created.on("click", "venue-clusters", (event) => {
           const feature = event.features?.[0]
@@ -199,7 +214,10 @@ export function SouthwestMap({ model }: { model: MapModel }) {
         })
         created.on("click", "venue-points", (event) => {
           const id = event.features?.[0]?.properties?.id
-          if (typeof id === "string") setSelection({ kind: "venue", id })
+          if (typeof id !== "string") return
+          const venue = modelRef.current.venues.find((item) => item.id === id)
+          setSelection({ kind: "venue", id })
+          captureClient("map_area_clicked", { kind: "venue", venue: id, area: venue?.postcode ?? "" })
         })
         for (const layer of ["venue-clusters", "venue-points"]) {
           created.on("mouseenter", layer, () => {
@@ -325,7 +343,7 @@ export function SouthwestMap({ model }: { model: MapModel }) {
               value={selection?.kind === "district" ? selection.id : ""}
               onChange={(event) => {
                 const postcode = event.target.value
-                if (postcode) setSelection({ kind: "district", id: postcode })
+                if (postcode) selectPlace({ kind: "district", id: postcode })
               }}
             >
               <option value="">Choose a postcode</option>
@@ -345,7 +363,7 @@ export function SouthwestMap({ model }: { model: MapModel }) {
               value={selection?.kind === "venue" ? selection.id : ""}
               onChange={(event) => {
                 const id = event.target.value
-                if (id) setSelection({ kind: "venue", id })
+                if (id) selectPlace({ kind: "venue", id })
               }}
             >
               <option value="">Choose a venue</option>
@@ -393,7 +411,12 @@ function DistrictDetail({ district, listingsConfigured }: { district: MapDistric
       </div>
       <ArtistList artists={district.artists} />
       <VenueList district={district} />
-      <GigList gigs={district.gigs} listingsConfigured={listingsConfigured} empty="No upcoming gigs were listed in this district." />
+      <GigList
+        gigs={district.gigs}
+        listingsConfigured={listingsConfigured}
+        empty="No upcoming gigs were listed in this district."
+        area={district.postcode}
+      />
       <div className="flex flex-wrap gap-3">
         {district.playlistHref ? (
           <LinkButton href={district.playlistHref}>{"Make this area's playlist"}</LinkButton>
@@ -419,7 +442,13 @@ function VenueDetail({ venue, listingsConfigured }: { venue: MapVenuePin; listin
         {venue.highlightReason ? <p className="text-sm font-medium text-accent">{venue.highlightReason}</p> : null}
         <p className="text-sm leading-6 text-muted-foreground">{venue.address}</p>
       </div>
-      <GigList gigs={venue.gigs} listingsConfigured={listingsConfigured} empty="No upcoming gigs were listed at this venue." />
+      <GigList
+        gigs={venue.gigs}
+        listingsConfigured={listingsConfigured}
+        empty="No upcoming gigs were listed at this venue."
+        area={venue.postcode}
+        venue={venue.name}
+      />
       <LinkButton href={venue.playlistHref}>{"Playlist of who's playing here"}</LinkButton>
       <a className="block text-sm font-medium underline decoration-border underline-offset-4" href={venue.pageHref}>
         Open the venue page
@@ -481,10 +510,14 @@ function GigList({
   gigs,
   listingsConfigured,
   empty,
+  area,
+  venue,
 }: {
   gigs: MapDistrict["gigs"]
   listingsConfigured: boolean
   empty: string
+  area: string
+  venue?: string
 }) {
   return (
     <div className="space-y-2">
@@ -505,7 +538,14 @@ function GigList({
                 {gig.ticketUrl ? (
                   <>
                     {" · "}
-                    <a className="underline decoration-border underline-offset-4" href={gig.ticketUrl}>
+                    <a
+                      className="underline decoration-border underline-offset-4 hover:text-link-hover"
+                      href={gig.ticketUrl}
+                      data-analytics="gig-ticket"
+                      data-artist={gig.title}
+                      data-venue={venue || gig.venueName}
+                      data-area={area}
+                    >
                       Tickets
                     </a>
                   </>

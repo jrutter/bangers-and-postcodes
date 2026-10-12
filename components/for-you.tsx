@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { connection } from "next/server"
 
+import { ForYouShown } from "@/components/for-you-shown"
 import { GigList } from "@/components/gig-list"
 import { TastePrompt } from "@/components/taste-prompt"
 import { areaPath, artists as catalogueArtists, postcodePath } from "@/lib/catalogue"
@@ -28,18 +29,18 @@ export async function ForYou({
 }) {
   await connection()
   const taste = await loadTasteSession(returnTo)
-  if (taste.status === "anonymous") return <ForYouShell><TastePrompt returnTo={returnTo} mode="anonymous" /></ForYouShell>
-  if (taste.status === "needs-scope") return <ForYouShell><TastePrompt returnTo={returnTo} mode="needs-scope" /></ForYouShell>
+  if (taste.status === "anonymous") return <ForYouShell view={{ status: "anonymous", artistCount: 0, gigCount: 0 }}><TastePrompt returnTo={returnTo} mode="anonymous" /></ForYouShell>
+  if (taste.status === "needs-scope") return <ForYouShell view={{ status: "needs-scope", artistCount: 0, gigCount: 0 }}><TastePrompt returnTo={returnTo} mode="needs-scope" /></ForYouShell>
   if (taste.status === "error") {
     return (
-      <ForYouShell>
+      <ForYouShell view={{ status: "error", artistCount: 0, gigCount: 0 }}>
         <TastePrompt returnTo={returnTo} mode="error" />
       </ForYouShell>
     )
   }
   if (taste.status === "empty") {
     return (
-      <ForYouShell>
+      <ForYouShell view={{ status: "empty", artistCount: 0, gigCount: 0 }}>
         <p className="text-sm leading-6 text-muted-foreground">
           Spotify did not return top artists, tracks, or follows for this account, so nothing is ranked yet.
         </p>
@@ -60,7 +61,7 @@ export async function ForYou({
   const spotify = rankedGigs.length > 0 ? await linksForGigArtists(rankedGigs.map((row) => row.item), []) : { links: {}, status: "ready" as const }
 
   return (
-    <ForYouShell>
+    <ForYouShell view={{ status: "ready", artistCount: rankedArtists.length, gigCount: rankedGigs.length }}>
       <p className="text-sm leading-6 text-muted-foreground">
         From your Spotify top artists and tracks over the last month and the last six months, plus artists you follow.
         Genres and related artists are used when Spotify sends them.
@@ -105,10 +106,17 @@ export async function ForYou({
   )
 }
 
-function ForYouShell({ children }: { children: React.ReactNode }) {
+function ForYouShell({
+  children,
+  view,
+}: {
+  children: React.ReactNode
+  view: { status: string; artistCount: number; gigCount: number }
+}) {
   return (
     <section id="for-you" className="space-y-4">
       <h2 className="font-heading text-3xl font-semibold tracking-tight">For you</h2>
+      <ForYouShown status={view.status} artistCount={view.artistCount} gigCount={view.gigCount} />
       {children}
     </section>
   )

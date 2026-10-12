@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { useActionState } from "react"
+import { useActionState, useEffect, useRef } from "react"
 import { useFormStatus } from "react-dom"
 
 import { AreaChecklist } from "@/components/area-checklist"
@@ -62,7 +62,19 @@ function NewsletterFields({
   defaults: string[]
 }) {
   const [state, action] = useActionState(subscribeAction, null)
+  const formRef = useRef<HTMLFormElement>(null)
+  const reported = useRef<SubscribeResult | null>(null)
   const heading = placement === "footer" ? "text-lg" : "text-3xl"
+  useEffect(() => {
+    if (!state || reported.current === state) return
+    reported.current = state
+    const areaCount = formRef.current?.querySelectorAll('input[name="areas"]:checked').length ?? 0
+    window.dispatchEvent(
+      new CustomEvent("bangers:newsletter", {
+        detail: { status: state.status === "invalid" ? "failed" : "success", area_count: areaCount },
+      }),
+    )
+  }, [state])
   return (
     <section className={placement === "panel" ? "space-y-4" : "space-y-3"} aria-labelledby={`newsletter-${placement}`}>
       <div className="space-y-2">
@@ -74,7 +86,7 @@ function NewsletterFields({
           playlist. Spotify is optional.
         </p>
       </div>
-      <form action={action} className="max-w-2xl space-y-4">
+      <form ref={formRef} action={action} data-analytics-form="newsletter" className="max-w-2xl space-y-4">
         <div className="absolute left-[-10000px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
           <label>
             Company

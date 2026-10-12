@@ -11,10 +11,10 @@ export function TasteSort({
 }) {
   return (
     <p className="flex flex-wrap gap-3 text-sm">
-      <SortLink href={withSort(pathname, query, null)} active={sort === "date"}>
+      <SortLink href={withSort(pathname, query, null)} active={sort === "date"} filter="date">
         Date
       </SortLink>
-      <SortLink href={withSort(pathname, query, "for-you")} active={sort === "for-you"}>
+      <SortLink href={withSort(pathname, query, "for-you")} active={sort === "for-you"} filter="for-you">
         For you
       </SortLink>
     </p>
@@ -31,11 +31,13 @@ function withSort(pathname: string, query: Record<string, string | undefined> | 
   return text ? `${pathname}?${text}` : pathname
 }
 
-function SortLink({ href, active, children }: { href: string; active: boolean; children: string }) {
+function SortLink({ href, active, filter, children }: { href: string; active: boolean; filter: string; children: string }) {
   return (
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
+      data-analytics-filter="sort"
+      data-analytics-value={filter}
       className={
         active
           ? "font-medium text-foreground underline decoration-primary underline-offset-4"
