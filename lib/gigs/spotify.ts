@@ -1,3 +1,5 @@
+import { unstable_cache } from "next/cache"
+
 import { GIG_SPOTIFY_CAP } from "@/lib/gigs/constants"
 import { displayBill, foldName } from "@/lib/gigs/bill"
 import { lineupNames } from "@/lib/gigs/select"
@@ -61,7 +63,8 @@ export async function linksForGigArtists(
   const names = lineupNames(gigs, GIG_SPOTIFY_CAP).filter((name) => !knownNames.has(foldName(name)))
   if (names.length === 0) return { links, status: "ready" }
   try {
-    const matched = await client.matchGigLineup(names.map(recordFromName), spotifyIdHints(gigs))
+    const hints = [...spotifyIdHints(gigs).entries()]
+    const matched = await matchLineupCached(names, hints)
     return { links: { ...links, ...spotifyLinksFor(matched) }, status: "ready" }
   } catch (error) {
     return {
@@ -83,6 +86,13 @@ export function spotifyIdHints(gigs: Gig[]): Map<string, string> {
   }
   return hints
 }
+
+const matchLineupCached = unstable_cache(
+  async (names: string[], hints: [string, string][]) =>
+    spotifyClient().matchGigLineup(names.map(recordFromName), new Map(hints)),
+  ["spotify-gig-lineup"],
+  { revalidate: 60 * 60 * 24, tags: ["spotify", "artists"] },
+)
 
 function recordFromName(name: string): ArtistRecord {
   return {

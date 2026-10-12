@@ -1,9 +1,9 @@
-import { connection } from "next/server"
+import { Suspense } from "react"
 
 import { ArtistBoard, type BoardStatus } from "@/components/artist-board"
 import { ForYou } from "@/components/for-you"
 import { GigSection } from "@/components/gig-section"
-import { areaPath, postcodePath, type Scope } from "@/lib/catalogue"
+import { areaPath, postcodePath, type Scope } from "@/lib/paths"
 import { loadRegionalGigs } from "@/lib/gigs/cache"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
 import { selectGigs } from "@/lib/gigs/select"
@@ -37,7 +37,6 @@ export async function LocalityBody({
     emptyLabel: string
   }
 }) {
-  await connection()
   const client = spotifyClient()
   const paged = pageArtists(artists, page)
   const featured = era ? [] : showcaseArtists(artists, 6)
@@ -62,7 +61,9 @@ export async function LocalityBody({
 
   return (
     <div className="space-y-10">
-      <ForYou artists={artists} selection={gigs.selection} returnTo={returnToFor(scope)} />
+      <Suspense fallback={<p className="text-sm text-muted-foreground">Checking your Spotify taste…</p>}>
+        <ForYou artists={artists} selection={gigs.selection} returnTo={returnToFor(scope)} />
+      </Suspense>
       <ArtistBoard
         artists={pageArtistsMatched}
         status={status}

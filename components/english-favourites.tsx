@@ -2,7 +2,7 @@ import Link from "next/link"
 import { connection } from "next/server"
 
 import { LinkButton } from "@/components/link-button"
-import { playlistPath } from "@/lib/catalogue"
+import { playlistPath } from "@/lib/paths"
 import type { FavouriteView } from "@/lib/england"
 import { loadFavouriteSession } from "@/lib/favourites-session"
 import { loginPath } from "@/lib/oauth"

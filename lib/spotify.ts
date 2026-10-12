@@ -129,6 +129,7 @@ export function createSpotify(options?: { fetch?: FetchLike; env?: SpotifyEnv })
           const payload = await apiSend(fetchImpl, "GET", `/artists/${encodeURIComponent(id)}/top-tracks`, {
             token: await this.accessToken(),
             params: { market: "GB" },
+            shared: true,
           })
           const tracks = Array.isArray(payload.tracks) ? payload.tracks : []
           return chooseTrack(tracks as Parameters<typeof chooseTrack>[0])?.uri || null
@@ -257,6 +258,7 @@ async function matchOne(
     const payload = await apiSend(fetchImpl, "GET", "/search", {
       token: await accessToken(),
       params: { q: `artist:"${name.replace(/"/g, "")}"`, type: "artist", limit: "10" },
+      shared: true,
     })
     const block = payload.artists
     const items =
@@ -315,7 +317,10 @@ async function artistFromHint(
   const id = spotifyArtistIdFrom(hints?.get(foldName(name)))
   if (!id) return null
   try {
-    const payload = await apiSend(fetchImpl, "GET", `/artists/${encodeURIComponent(id)}`, { token: await accessToken() })
+    const payload = await apiSend(fetchImpl, "GET", `/artists/${encodeURIComponent(id)}`, {
+      token: await accessToken(),
+      shared: true,
+    })
     return typeof payload.id === "string" ? (payload as LooseArtist) : null
   } catch (error) {
     if (error instanceof SpotifyError && (error.status === 401 || error.status === 429)) throw error
@@ -337,6 +342,7 @@ async function looseArtist(
     const payload = await apiSend(fetchImpl, "GET", "/search", {
       token: await accessToken(),
       params: { q: name.replace(/["\\]/g, " ").replace(/\s+/g, " ").trim().slice(0, 200), type: "artist", limit: "8" },
+      shared: true,
     })
     const block = payload.artists
     const items =
@@ -366,7 +372,10 @@ async function completeMatch(
   let profile = metricsFromArtist(chosen)
   if (profile.popularity === null || profile.followers === null) {
     try {
-      const fetched = await apiSend(fetchImpl, "GET", `/artists/${encodeURIComponent(chosen.id)}`, { token: await accessToken() })
+      const fetched = await apiSend(fetchImpl, "GET", `/artists/${encodeURIComponent(chosen.id)}`, {
+        token: await accessToken(),
+        shared: true,
+      })
       const filled = metricsFromArtist(fetched)
       for (const key of ["followers", "popularity", "url", "image", "name"] as const) {
         if (profile[key] == null && filled[key] != null) profile = { ...profile, [key]: filled[key] }
@@ -381,6 +390,7 @@ async function completeMatch(
     const payload = await apiSend(fetchImpl, "GET", `/artists/${encodeURIComponent(chosen.id)}/top-tracks`, {
       token: await accessToken(),
       params: { market: "GB" },
+      shared: true,
     })
     const tracks = Array.isArray(payload.tracks) ? (payload.tracks as Parameters<typeof chooseTrack>[0]) : []
     track = chooseTrack(tracks)
@@ -392,6 +402,7 @@ async function completeMatch(
       const payload = await apiSend(fetchImpl, "GET", "/search", {
         token: await accessToken(),
         params: { q: `artist:"${searchName.replace(/"/g, "")}"`, type: "track", limit: "5", market: "GB" },
+        shared: true,
       })
       const block = payload.tracks
       const items =
@@ -451,6 +462,8 @@ async function apiSend(
     params?: Record<string, string>
     json?: Record<string, unknown>
     phase?: SpotifyFailurePhase | null
+    /** Catalogue lookups can be shared. User tokens and playlist writes stay uncached. */
+    shared?: boolean
   },
 ): Promise<Record<string, unknown>> {
   const url = new URL(`${API_ROOT}${path}`)
@@ -463,7 +476,14 @@ async function apiSend(
     headers["Content-Type"] = "application/json"
     body = JSON.stringify(options.json)
   }
-  const response = await fetchImpl(url, { method, headers, body, cache: "no-store" })
+  const response = await fetchImpl(url, {
+    method,
+    headers,
+    body,
+    ...(options.shared
+      ? { next: { revalidate: 60 * 60 * 24, tags: ["spotify", "artists"] } }
+      : { cache: "no-store" as const }),
+  })
   if (response.status === 204) return {}
   return readJson(response, `${method} ${path}`, options.phase ?? null)
 }

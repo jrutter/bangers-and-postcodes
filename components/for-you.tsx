@@ -4,7 +4,9 @@ import { connection } from "next/server"
 import { ForYouShown } from "@/components/for-you-shown"
 import { GigList } from "@/components/gig-list"
 import { TastePrompt } from "@/components/taste-prompt"
-import { areaPath, artists as catalogueArtists, postcodePath } from "@/lib/catalogue"
+import { readTasteIndex, type TasteRow } from "@/lib/page-data"
+import { areaPath, artistPath, postcodePath } from "@/lib/paths"
+import { districtInRegion } from "@/lib/regions"
 import { loadRegionalGigs } from "@/lib/gigs/cache"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
 import { selectGigs } from "@/lib/gigs/select"
@@ -21,7 +23,7 @@ export async function ForYou({
   limitArtists = 6,
   limitGigs = 4,
 }: {
-  artists: ArtistRecord[]
+  artists?: ArtistRecord[]
   selection: GigSelection
   returnTo: string
   limitArtists?: number
@@ -50,8 +52,9 @@ export async function ForYou({
 
   const feed = await loadRegionalGigs(gigProviderFingerprint())
   const gigs = selectGigs(feed.gigs, selection, "upcoming", new Date())
-  const tags = indexTags(catalogueArtists())
-  const rankedArtists = orderByTaste(artists, (artist) => matchCandidate(taste.profile, artist))
+  const catalogueArtists = artists ?? tasteArtists(selection)
+  const tags = indexTags(catalogueArtists)
+  const rankedArtists = orderByTaste(catalogueArtists, (artist) => matchCandidate(taste.profile, artist))
     .filter((row) => row.taste)
     .slice(0, limitArtists)
   const rankedGigs = orderByTaste(gigs, (gig) => matchGig(taste.profile, gig, tags))
@@ -122,9 +125,51 @@ function ForYouShell({
   )
 }
 
-function artistHref(artist: ArtistRecord): string | null {
+function artistHref(artist: ArtistRecord & { slug?: string }): string | null {
+  if (artist.slug) return artistPath(artist.slug)
   const place = artist.locality.find((locality) => locality.precision === "place" && locality.postcodes.length > 0)
   if (place?.postcodes[0]) return postcodePath(place.postcodes[0])
   const any = artist.locality[0]
   return any ? areaPath(any.place_id) : null
+}
+
+function tasteArtists(selection: GigSelection): ArtistRecord[] {
+  return readTasteIndex()
+    .filter((row) => tasteRowMatches(row, selection))
+    .map(tasteRowToArtist)
+}
+
+function tasteRowMatches(row: TasteRow, selection: GigSelection): boolean {
+  if (selection.kind === "london") return true
+  if (selection.kind === "southwest" || selection.kind === "region") {
+    const regionId = selection.kind === "region" ? selection.regionId : "southwest"
+    return row.postcodes.some((code) => districtInRegion(code, regionId))
+  }
+  if (selection.kind === "postcode") return row.postcodes.includes(selection.postcode)
+  if (selection.kind === "place") return row.placeIds.includes(selection.placeId)
+  return false
+}
+
+function tasteRowToArtist(row: TasteRow): ArtistRecord & { slug: string } {
+  return {
+    slug: row.slug,
+    mbid: null,
+    wikidata_qid: null,
+    name: row.name,
+    sort_name: row.name,
+    type: null,
+    disambiguation: null,
+    country: null,
+    life_span: null,
+    tags: row.tags,
+    locality: [
+      ...row.placeIds.map((placeId) => ({
+        place_id: placeId,
+        place_name: placeId,
+        postcodes: row.postcodes,
+        precision: "place",
+        claims: [],
+      })),
+    ],
+  }
 }

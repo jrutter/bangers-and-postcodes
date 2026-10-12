@@ -3,7 +3,7 @@ import Link from "next/link"
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { areaPath } from "@/lib/catalogue"
+import { areaPath, artistPath } from "@/lib/paths"
 import { claimLabel, metricText, safePreviewUrl, safeSpotifyImage, spotifyTrackUrl } from "@/lib/format"
 import { formatGigWhen, gigsForArtist } from "@/lib/gigs/select"
 import type { TaggedGig } from "@/lib/gigs/types"
@@ -158,7 +158,15 @@ function ArtistCard({ artist, showSpotify, gigs }: { artist: MatchedArtist; show
         )}
         <div className="min-w-0 space-y-1">
           <CardTitle>
-            <h3 className="font-heading text-lg font-semibold">{artist.name}</h3>
+            <h3 className="font-heading text-lg font-semibold">
+              {"slug" in artist && typeof artist.slug === "string" ? (
+                <Link href={artistPath(artist.slug)} className="underline decoration-border underline-offset-4 hover:text-link-hover">
+                  {artist.name}
+                </Link>
+              ) : (
+                artist.name
+              )}
+            </h3>
           </CardTitle>
           <div className="flex flex-wrap gap-1.5">
             {artist.type ? <Badge variant="secondary">{artist.type}</Badge> : null}

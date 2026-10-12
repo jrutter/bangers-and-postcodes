@@ -106,6 +106,8 @@ export function eventsForPath(pathname: string): { event: string; properties: Re
   if (pathname === "/favourites") return [{ event: "favourites_viewed", properties: { page: "favourites" } }]
   const venue = pathname.match(/^\/venue\/([a-z0-9-]+)$/i)
   if (venue?.[1]) return [{ event: "venue_viewed", properties: { venue: venue[1] } }]
+  const artist = pathname.match(/^\/artist\/([a-z0-9-]+)$/i)
+  if (artist?.[1]) return [{ event: "artist_viewed", properties: { artist: artist[1] } }]
   return []
 }
 

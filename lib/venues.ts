@@ -63,16 +63,7 @@ export function curatedVenues(): Venue[] {
   return VENUES.filter((venue) => venue.curated)
 }
 
-export function venuePath(id: string): string {
-  return `/venue/${id}`
-}
-
-export function venueTypeLabel(type: string): string {
-  if (type === "music-venue") return "Music venue"
-  if (type === "arts-centre") return "Arts centre"
-  if (type === "concert-hall") return "Concert hall"
-  return type.slice(0, 1).toUpperCase() + type.slice(1)
-}
+export { venuePath, venueTypeLabel } from "@/lib/paths"
 
 export function venueTypes(): string[] {
   return [...new Set(VENUES.map((venue) => venue.type))].sort()

@@ -3,26 +3,25 @@ import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
 import { LocalityView, postcodeLinks } from "@/components/locality-view"
-import { artistsInPlace, placeById, places } from "@/lib/catalogue"
 import { parseEra } from "@/lib/era"
 import { placeGigPostcodes } from "@/lib/gigs/select"
-import { areaInfo, regionPath } from "@/lib/regions"
-import { venues } from "@/lib/venues"
+import { readArea, readManifest } from "@/lib/page-data"
+import { regionById, regionPath } from "@/lib/regions"
 
 export const maxDuration = 120
 
-export function generateStaticParams() {
-  return places().map((place) => ({ place: place.id }))
+export async function generateStaticParams() {
+  return readManifest().areas.map((place) => ({ place }))
 }
 
 export async function generateMetadata(props: PageProps<"/area/[place]">): Promise<Metadata> {
   const { place } = await props.params
-  return { title: placeById(place)?.name ?? "Area" }
+  return { title: readArea(place)?.name ?? "Area" }
 }
 
 export default async function AreaPage(props: PageProps<"/area/[place]">) {
   const { place: placeId } = await props.params
-  const place = placeById(placeId)
+  const place = readArea(placeId)
   if (!place) notFound()
   return (
     <Suspense fallback={<p className="text-sm text-muted-foreground">Loading {place.name}…</p>}>
@@ -38,20 +37,13 @@ async function AreaBody({
   placeId: string
   searchParams: PageProps<"/area/[place]">["searchParams"]
 }) {
-  const place = placeById(placeId)
+  const place = readArea(placeId)
   if (!place) notFound()
   const query = await searchParams
-  const artists = artistsInPlace(place.id)
   const page = Number(firstQuery(query.page) || "1")
   const codes = placeGigPostcodes(place.id)
   const codeLabel = codes.length > 0 ? codes.join(", ") : place.name
-  const matched = [...new Set(place.postcodes.map((code) => areaInfo(code)?.region.id).filter(Boolean))]
-  const region = matched.length === 1 ? areaInfo(place.postcodes[0] ?? "")?.region ?? null : null
-  const rooms = venues().filter((venue) =>
-    place.precision === "borough"
-      ? venue.boroughId === place.id
-      : venue.areaIds.includes(place.id) || venue.postcodes.some((code) => place.postcodes.includes(code)),
-  )
+  const region = place.regionId ? regionById(place.regionId) : null
   return (
     <LocalityView
       kicker={place.precision === "borough" ? "Borough" : region?.name ?? "Area"}
@@ -71,9 +63,9 @@ async function AreaBody({
             }
           : undefined
       }
-      rooms={rooms}
+      rooms={place.rooms}
       note={place.note}
-      artists={artists}
+      artists={place.artists}
       places={postcodeLinks(place.postcodes)}
       scope={{ kind: "area", placeId: place.id }}
       gigs={{

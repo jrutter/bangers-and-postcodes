@@ -1,3 +1,5 @@
+import { GIG_REVALIDATE_SECONDS } from "@/lib/gigs/constants"
+
 export class GigProviderError extends Error {
   constructor(message: string) {
     super(scrubSecrets(message))
@@ -17,7 +19,7 @@ export async function getJson(fetchImpl: typeof fetch, url: string, provider: st
         Accept: "application/json",
         "User-Agent": "bangers-and-postcodes",
       },
-      cache: "no-store",
+      next: { revalidate: GIG_REVALIDATE_SECONDS, tags: ["gigs"] },
     })
   } catch {
     throw new GigProviderError(`${provider} could not be reached.`)

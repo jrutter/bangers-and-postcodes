@@ -1,4 +1,5 @@
-import { placeById, type Scope } from "@/lib/catalogue"
+import { readPlacePostcodes, readVenueMatch, venueMatchById, type VenueMatch } from "@/lib/page-data"
+import type { Scope } from "@/lib/paths"
 import { districtPoint, LONDON_DISTRICTS } from "@/lib/districts"
 import {
   NEAR_MILES,
@@ -9,6 +10,7 @@ import {
 import type { Gig, GigSelection, TaggedGig } from "@/lib/gigs/types"
 import {
   addDays,
+  compactPostcode,
   coveredPostcodes,
   londonDate,
   milesBetween,
@@ -17,7 +19,6 @@ import {
 import { namesMatch, normalizeName } from "@/lib/names"
 import { districtInRegion, regionForPostcode, regions } from "@/lib/regions"
 import type { ArtistRecord } from "@/lib/types"
-import { samePostcode, venueById, venues, type Venue } from "@/lib/venues"
 
 const GENERIC_BILLS = new Set([
   "live music",
@@ -47,18 +48,18 @@ const BOROUGH_POSTCODES: Record<string, string[]> = {
 
 export function placeGigPostcodes(placeId: string): string[] {
   if (BOROUGH_POSTCODES[placeId]) return BOROUGH_POSTCODES[placeId]
-  return placeById(placeId)?.postcodes ?? []
+  return readPlacePostcodes()[placeId] ?? []
 }
 
-export function venueForGig(gig: Pick<Gig, "venueName" | "postcode" | "latitude" | "longitude">): Venue | null {
+export function venueForGig(gig: Pick<Gig, "venueName" | "postcode" | "latitude" | "longitude">): VenueMatch | null {
   const gigName = normalizeName(gig.venueName)
   if (!gigName) return null
   const outward = outwardCode(gig.postcode)
-  let best: { venue: Venue; score: number } | null = null
-  for (const venue of venues()) {
+  let best: { venue: VenueMatch; score: number } | null = null
+  for (const venue of readVenueMatch()) {
     const aliases = [venue.name, ...venue.aliases]
     if (!aliases.some((alias) => nameHits(gigName, normalizeName(alias)))) continue
-    const sameFull = samePostcode(gig.postcode, venue.postcode)
+    const sameFull = postcodesMatch(gig.postcode, venue.postcode)
     const sameOutward = Boolean(outward && outward === outwardCode(venue.postcode))
     const near = isNearVenue(gig, venue)
     if (!sameFull && !sameOutward && !near) continue
@@ -242,7 +243,7 @@ function matchesSelection(gig: Gig, selection: GigSelection): boolean {
   }
   if (selection.kind === "postcode") return matchesPostcode(gig, selection.postcode)
   if (selection.kind === "place") return matchesPlace(gig, selection.placeId)
-  const venue = venueById(selection.venueId)
+  const venue = venueMatchById(selection.venueId)
   if (!venue) return false
   return venueForGig(gig)?.id === venue.id
 }
@@ -279,7 +280,13 @@ function nearestDistrict(gig: Pick<Gig, "latitude" | "longitude">): string | nul
   return best?.code ?? null
 }
 
-function isNearVenue(gig: Pick<Gig, "latitude" | "longitude">, venue: Venue): boolean {
+function postcodesMatch(left: string | null | undefined, right: string | null | undefined): boolean {
+  const a = compactPostcode(left)
+  const b = compactPostcode(right)
+  return Boolean(a && b && a === b)
+}
+
+function isNearVenue(gig: Pick<Gig, "latitude" | "longitude">, venue: VenueMatch): boolean {
   if (gig.latitude == null || gig.longitude == null) return false
   return (
     milesBetween(

@@ -1,4 +1,11 @@
-import { cacheLife } from "next/cache"
+import { cacheLife, cacheTag, unstable_cache } from "next/cache"
+
+const ARTIST_REVALIDATE_SECONDS = 60 * 60 * 24
+const artistCacheLife = {
+  stale: ARTIST_REVALIDATE_SECONDS,
+  revalidate: ARTIST_REVALIDATE_SECONDS,
+  expire: ARTIST_REVALIDATE_SECONDS * 7,
+} as const
 
 import { UNCHECKED, type FavouriteArtist, type OriginHit } from "@/lib/england"
 import {
@@ -79,22 +86,48 @@ export async function loadOrigins(artists: FavouriteArtist[], budgetMs = 12_000)
   return result
 }
 
+const readSpotifyPlaces = unstable_cache(
+  async (ids: string[]): Promise<OriginBatch[]> => {
+    const grouped = await fetchWikidataBySpotifyIds(fetch, ids)
+    return [...grouped.entries()].map(([id, rows]) => ({ id, rows }))
+  },
+  ["wikidata-spotify-places"],
+  { revalidate: ARTIST_REVALIDATE_SECONDS, tags: ["musicbrainz", "artists"] },
+)
+
+const readNamePlaces = unstable_cache(
+  async (names: string[]): Promise<NameBatch[]> => {
+    const grouped = await fetchWikidataByNames(fetch, names)
+    return [...grouped.entries()].map(([name, rows]) => ({ name, rows }))
+  },
+  ["wikidata-name-places"],
+  { revalidate: ARTIST_REVALIDATE_SECONDS, tags: ["musicbrainz", "artists"] },
+)
+
+const readMusicBrainz = unstable_cache(
+  async (spotifyId: string, name: string): Promise<OriginHit> =>
+    lookupArtistOrigin({ id: spotifyId, name }, { fetch, limit: musicBrainzLimit }),
+  ["musicbrainz-origin"],
+  { revalidate: ARTIST_REVALIDATE_SECONDS, tags: ["musicbrainz", "artists"] },
+)
+
 async function cachedSpotifyPlaces(ids: string[]): Promise<OriginBatch[]> {
   "use cache"
-  cacheLife({ stale: 60 * 60 * 24, revalidate: 60 * 60 * 24 * 7, expire: 60 * 60 * 24 * 30 })
-  const grouped = await fetchWikidataBySpotifyIds(fetch, ids)
-  return [...grouped.entries()].map(([id, rows]) => ({ id, rows }))
+  cacheLife(artistCacheLife)
+  cacheTag("musicbrainz", "artists")
+  return readSpotifyPlaces(ids)
 }
 
 async function cachedNamePlaces(names: string[]): Promise<NameBatch[]> {
   "use cache"
-  cacheLife({ stale: 60 * 60 * 24, revalidate: 60 * 60 * 24 * 7, expire: 60 * 60 * 24 * 30 })
-  const grouped = await fetchWikidataByNames(fetch, names)
-  return [...grouped.entries()].map(([name, rows]) => ({ name, rows }))
+  cacheLife(artistCacheLife)
+  cacheTag("musicbrainz", "artists")
+  return readNamePlaces(names)
 }
 
 async function cachedMusicBrainz(spotifyId: string, name: string): Promise<OriginHit> {
   "use cache"
-  cacheLife({ stale: 60 * 60 * 24, revalidate: 60 * 60 * 24 * 7, expire: 60 * 60 * 24 * 30 })
-  return lookupArtistOrigin({ id: spotifyId, name }, { fetch, limit: musicBrainzLimit })
+  cacheLife(artistCacheLife)
+  cacheTag("musicbrainz", "artists")
+  return readMusicBrainz(spotifyId, name)
 }

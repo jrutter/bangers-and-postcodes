@@ -1,7 +1,6 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
-import { places } from "@/lib/catalogue"
 import { assembleFavourites, dedupeFavourites, type FavouriteView } from "@/lib/england"
 import { loadOrigins } from "@/lib/favourites-origin"
 import { readFavouriteArtists } from "@/lib/favourites-spotify"
@@ -35,6 +34,7 @@ export async function loadFavouriteSession(returnTo: string, budgetMs = 12_000):
     const artists = dedupeFavourites(await readFavouriteArtists(accessToken))
     if (artists.length === 0) return { status: "empty" }
     const origins = await loadOrigins(artists, budgetMs)
+    const { places } = await import("@/lib/catalogue")
     return { status: "ready", view: assembleFavourites(artists, origins, places()) }
   } catch (error) {
     if (error instanceof TasteScopeError) return { status: "needs-scope" }

@@ -1,4 +1,5 @@
-import { areaPath, knownPostcode, postcodePath } from "@/lib/catalogue"
+import { knownPagePostcode } from "@/lib/page-data"
+import { areaPath, postcodePath } from "@/lib/paths"
 import { namesMatch, normalizeName } from "@/lib/names"
 import type { PlaceRecord } from "@/lib/types"
 
@@ -153,7 +154,7 @@ export function catalogueLinks(hit: OriginHit, places: PlaceRecord[]): Favourite
   if (!place) return []
   const links: FavouriteLink[] = [{ label: place.name, href: areaPath(place.id) }]
   for (const postcode of place.postcodes) {
-    if (!knownPostcode(postcode)) continue
+    if (!knownPagePostcode(postcode)) continue
     links.push({ label: postcode, href: postcodePath(postcode) })
   }
   return links
