@@ -306,7 +306,8 @@ function nameHits(gigName: string, alias: string): boolean {
 
 function dedupeKey(gig: Gig): string {
   const artist = normalizeName(gig.artistNames[0] || gig.title)
-  const venue = normalizeName(gig.venueName)
+  const matched = venueForGig(gig)
+  const venue = matched ? `id:${matched.id}` : normalizeName(gig.venueName)
   return `${artist}|${venue}|${gig.date ?? ""}`
 }
 

@@ -8,7 +8,10 @@ export class GigProviderError extends Error {
 }
 
 export function scrubSecrets(message: string): string {
-  return message.replace(/(api[_-]?key=)[^&\s]+/gi, "$1redacted").slice(0, 200)
+  return message
+    .replace(/(api[_-]?key=)[^&\s]+/gi, "$1redacted")
+    .replace(/(app_id=)[^&\s]+/gi, "$1redacted")
+    .slice(0, 200)
 }
 
 export async function getJson(fetchImpl: typeof fetch, url: string, provider: string): Promise<unknown> {

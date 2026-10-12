@@ -34,7 +34,7 @@ const ERRORS: Record<string, string> = {
   scope: "That area is not in this catalogue.",
   gigs: "No artists were listed for that gig playlist, so nothing was created.",
   "gig-keys":
-    "Add SKIDDLE_API_KEY or TICKETMASTER_API_KEY before building a gig playlist. Sample artists are not used.",
+    "Add SKIDDLE_API_KEY, TICKETMASTER_API_KEY, or BANDSINTOWN_APP_ID before building a gig playlist. Sample artists are not used.",
 }
 
 export async function PlaylistPanel({

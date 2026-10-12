@@ -83,6 +83,7 @@ describe("analytics events", () => {
     expect(eventsForPath("/area/putney")).toEqual([{ event: "area_viewed", properties: { kind: "area", area: "putney" } }])
     expect(eventsForPath("/region/southwest")).toEqual([{ event: "region_viewed", properties: { region: "southwest" } }])
     expect(eventsForPath("/favourites")).toEqual([{ event: "favourites_viewed", properties: { page: "favourites" } }])
+    expect(eventsForPath("/top-50")).toEqual([{ event: "top50_viewed", properties: { page: "top-50" } }])
     expect(eventsForPath("/venue/half-moon")).toEqual([{ event: "venue_viewed", properties: { venue: "half-moon" } }])
     expect(eventsForPath("/artist/11111111-1111-1111-1111-111111111111")).toEqual([
       { event: "artist_viewed", properties: { artist: "11111111-1111-1111-1111-111111111111" } },

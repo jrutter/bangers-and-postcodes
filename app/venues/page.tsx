@@ -39,7 +39,7 @@ export default function VenuesPage(props: PageProps<"/venues">) {
         <p className="text-base leading-7 text-muted-foreground">
           Music venues from the GLA Cultural Infrastructure Map and OpenStreetMap, plus the hand-checked southwest
           rooms. Pryzm Kingston, at 154 Clarence Street, KT1 1QP, closed in July 2025, so it is not listed. Gig dates
-          come from Skiddle or Ticketmaster when a listing matches the room by name and postcode. A bill whose room is
+          come from Skiddle, Ticketmaster, or Bandsintown when a listing matches the room by name and postcode. A bill whose room is
           not in this guide still shows on the region and area pages.
         </p>
       </header>

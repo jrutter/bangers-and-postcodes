@@ -101,8 +101,8 @@ function GigStatus({ feed, empty, emptyLabel }: { feed: GigFeed; empty: boolean;
   if (configured.length === 0) {
     return (
       <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-        No gig provider is configured, so this list stays empty. Set SKIDDLE_API_KEY or TICKETMASTER_API_KEY. Sample
-        gigs are not shown.
+        No gig provider is configured, so this list stays empty. Set SKIDDLE_API_KEY, TICKETMASTER_API_KEY, or
+        BANDSINTOWN_APP_ID. Sample gigs are not shown.
       </p>
     )
   }

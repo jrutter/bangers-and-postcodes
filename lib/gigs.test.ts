@@ -4,9 +4,10 @@ import { gigScopePhrase, parseScope, scopeValue } from "@/lib/catalogue"
 import { addDays, londonDate, outwardCode } from "@/lib/geo"
 import { LONDON_DISTRICTS } from "@/lib/districts"
 import { collectRegionalGigs } from "@/lib/gigs/collect"
-import { TILE_RADIUS_MILES } from "@/lib/gigs/constants"
+import { GIG_REVALIDATE_SECONDS, TILE_RADIUS_MILES } from "@/lib/gigs/constants"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
-import { artistRecordsForGigs, listingVenues, placeGigPostcodes, selectGigs, venueForGig, weekCountsByRegion } from "@/lib/gigs/select"
+import { artistRecordsForGigs, dedupeGigs, listingVenues, placeGigPostcodes, selectGigs, venueForGig, weekCountsByRegion } from "@/lib/gigs/select"
+import { bandsintownArtists, parseBandsintown } from "@/lib/gigs/bandsintown"
 import { parseSkiddle, skiddleProvider } from "@/lib/gigs/skiddle"
 import { londonSearchTiles } from "@/lib/gigs/tiles"
 import { milesBetween } from "@/lib/geo"
@@ -26,11 +27,14 @@ describe("gig providers", () => {
     const feed = await collectRegionalGigs({ env: env(), fetchImpl: fetchImpl as typeof fetch, now: NOW })
     expect(fetchImpl).not.toHaveBeenCalled()
     expect(feed.gigs).toEqual([])
-    expect(feed.providers.map((provider) => provider.configured)).toEqual([false, false])
+    expect(feed.providers.map((provider) => provider.configured)).toEqual([false, false, false])
     expect(gigProviderFingerprint(env())).toBe("none")
     expect(gigProviderFingerprint(env({ SKIDDLE_API_KEY: "a", TICKETMASTER_API_KEY: "b" }))).toBe(
       "skiddle+ticketmaster",
     )
+    expect(
+      gigProviderFingerprint(env({ SKIDDLE_API_KEY: "a", TICKETMASTER_API_KEY: "b", BANDSINTOWN_APP_ID: "c" })),
+    ).toBe("skiddle+ticketmaster+bandsintown")
   })
 
   it("parses a Skiddle bill and keeps London events from every tile", async () => {
@@ -145,6 +149,80 @@ describe("gig providers", () => {
       (district) => !tiles.some((tile) => milesBetween(tile, district) <= TILE_RADIUS_MILES),
     )
     expect(missed).toEqual([])
+  })
+
+  it("asks Bandsintown once per artist, keeps London, and collapses the same bill", async () => {
+    const artists: string[] = []
+    const fetchImpl = mockFetch((url) => {
+      if (url.hostname === "rest.bandsintown.com") {
+        expect(url.searchParams.get("app_id")).toBe("bit-app")
+        const artist = decodeURIComponent(url.pathname.split("/")[2] ?? "")
+        artists.push(artist)
+        if (artist === "Missing Act") return { status: 404, body: { errorMessage: "Artist not found" } }
+        return {
+          body: [
+            {
+              id: "bit-1",
+              url: "https://www.bandsintown.com/e/bit-1",
+              datetime: "2026-10-12T19:30:00",
+              lineup: ["Wet Leg"],
+              venue: {
+                name: "Half Moon Putney",
+                city: "London",
+                country: "United Kingdom",
+                latitude: "51.46726",
+                longitude: "-0.22007",
+              },
+            },
+            {
+              id: "bit-mcr",
+              datetime: "2026-10-16T20:00:00",
+              lineup: ["Wet Leg"],
+              venue: { name: "Albert Hall", city: "Manchester", country: "United Kingdom", latitude: "53.48", longitude: "-2.24" },
+            },
+            {
+              id: "bit-paris",
+              datetime: "2026-10-20T20:00:00",
+              lineup: ["Wet Leg"],
+              venue: { name: "Olympia", city: "Paris", country: "France", latitude: "48.86", longitude: "2.33" },
+            },
+          ],
+        }
+      }
+      if (url.hostname === "www.skiddle.com") {
+        if (url.searchParams.get("eventcode") === "CLUB") return { body: { error: 0, totalcount: 0, results: [] } }
+        return { body: skiddlePayload() }
+      }
+      return { body: { page: { totalPages: 1 } } }
+    })
+    const feed = await collectRegionalGigs({
+      env: env({ BANDSINTOWN_APP_ID: "bit-app", SKIDDLE_API_KEY: "skiddle-key" }),
+      fetchImpl,
+      now: NOW,
+      artistNames: ["Wet Leg", "Missing Act", "Wet Leg"],
+    })
+    expect(artists.sort()).toEqual(["Missing Act", "Wet Leg"])
+    expect(feed.gigs.filter((gig) => gig.artistNames.includes("Wet Leg"))).toHaveLength(1)
+    expect(feed.gigs.some((gig) => gig.venueName === "Albert Hall")).toBe(false)
+    expect(feed.gigs.some((gig) => gig.venueName === "Olympia")).toBe(false)
+    expect(feed.providers.find((provider) => provider.id === "bandsintown")?.configured).toBe(true)
+    const sameBill = dedupeGigs([
+      gig({ artistNames: ["Wet Leg"], venueName: "The Half Moon", date: "2026-10-12" }),
+      gig({
+        id: "bit",
+        provider: "bandsintown",
+        artistNames: ["Wet Leg"],
+        venueName: "Half Moon Putney",
+        date: "2026-10-12",
+      }),
+    ])
+    expect(sameBill).toHaveLength(1)
+  })
+
+  it("rotates the Bandsintown artist slice and ignores a non-list payload", () => {
+    expect(bandsintownArtists(["B", "A", "A"], new Date(0), 1)).toEqual(["A"])
+    expect(bandsintownArtists(["B", "A"], new Date(GIG_REVALIDATE_SECONDS * 1000), 1)).toEqual(["B"])
+    expect(parseBandsintown({ errorMessage: "Artist not found" }, "Nobody")).toEqual([])
   })
 })
 
