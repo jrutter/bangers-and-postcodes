@@ -1,0 +1,1342 @@
+[
+  {
+    "postcode": "BR1",
+    "latitude": 51.41365,
+    "longitude": 0.02352
+  },
+  {
+    "postcode": "BR2",
+    "latitude": 51.38129,
+    "longitude": 0.02067
+  },
+  {
+    "postcode": "BR3",
+    "latitude": 51.40398,
+    "longitude": -0.02685
+  },
+  {
+    "postcode": "BR4",
+    "latitude": 51.37613,
+    "longitude": -0.00749
+  },
+  {
+    "postcode": "BR5",
+    "latitude": 51.38939,
+    "longitude": 0.10004
+  },
+  {
+    "postcode": "BR6",
+    "latitude": 51.35973,
+    "longitude": 0.09379
+  },
+  {
+    "postcode": "BR7",
+    "latitude": 51.41338,
+    "longitude": 0.07192
+  },
+  {
+    "postcode": "CR0",
+    "latitude": 51.36931,
+    "longitude": -0.07093
+  },
+  {
+    "postcode": "CR2",
+    "latitude": 51.34984,
+    "longitude": -0.08045
+  },
+  {
+    "postcode": "CR4",
+    "latitude": 51.40255,
+    "longitude": -0.159
+  },
+  {
+    "postcode": "CR5",
+    "latitude": 51.30301,
+    "longitude": -0.15033
+  },
+  {
+    "postcode": "CR7",
+    "latitude": 51.40024,
+    "longitude": -0.10664
+  },
+  {
+    "postcode": "CR8",
+    "latitude": 51.3291,
+    "longitude": -0.1131
+  },
+  {
+    "postcode": "DA14",
+    "latitude": 51.42395,
+    "longitude": 0.1144
+  },
+  {
+    "postcode": "DA15",
+    "latitude": 51.44246,
+    "longitude": 0.10045
+  },
+  {
+    "postcode": "DA16",
+    "latitude": 51.46594,
+    "longitude": 0.10637
+  },
+  {
+    "postcode": "DA17",
+    "latitude": 51.48977,
+    "longitude": 0.14941
+  },
+  {
+    "postcode": "DA18",
+    "latitude": 51.49783,
+    "longitude": 0.13932
+  },
+  {
+    "postcode": "DA5",
+    "latitude": 51.4404,
+    "longitude": 0.14731
+  },
+  {
+    "postcode": "DA6",
+    "latitude": 51.45558,
+    "longitude": 0.14065
+  },
+  {
+    "postcode": "DA7",
+    "latitude": 51.46635,
+    "longitude": 0.14726
+  },
+  {
+    "postcode": "DA8",
+    "latitude": 51.47633,
+    "longitude": 0.17428
+  },
+  {
+    "postcode": "E1",
+    "latitude": 51.51896,
+    "longitude": -0.06547
+  },
+  {
+    "postcode": "E10",
+    "latitude": 51.56785,
+    "longitude": -0.01356
+  },
+  {
+    "postcode": "E11",
+    "latitude": 51.57002,
+    "longitude": 0.01245
+  },
+  {
+    "postcode": "E12",
+    "latitude": 51.55282,
+    "longitude": 0.04952
+  },
+  {
+    "postcode": "E13",
+    "latitude": 51.52641,
+    "longitude": 0.02443
+  },
+  {
+    "postcode": "E14",
+    "latitude": 51.50706,
+    "longitude": -0.01317
+  },
+  {
+    "postcode": "E15",
+    "latitude": 51.54174,
+    "longitude": 0.00248
+  },
+  {
+    "postcode": "E16",
+    "latitude": 51.51298,
+    "longitude": 0.03024
+  },
+  {
+    "postcode": "E17",
+    "latitude": 51.58786,
+    "longitude": -0.02148
+  },
+  {
+    "postcode": "E18",
+    "latitude": 51.59289,
+    "longitude": 0.02401
+  },
+  {
+    "postcode": "E1W",
+    "latitude": 51.5083,
+    "longitude": -0.05832
+  },
+  {
+    "postcode": "E2",
+    "latitude": 51.53015,
+    "longitude": -0.06024
+  },
+  {
+    "postcode": "E20",
+    "latitude": 51.54422,
+    "longitude": -0.00768
+  },
+  {
+    "postcode": "E3",
+    "latitude": 51.52902,
+    "longitude": -0.02469
+  },
+  {
+    "postcode": "E4",
+    "latitude": 51.63118,
+    "longitude": -0.00291
+  },
+  {
+    "postcode": "E5",
+    "latitude": 51.56161,
+    "longitude": -0.05488
+  },
+  {
+    "postcode": "E6",
+    "latitude": 51.52687,
+    "longitude": 0.05611
+  },
+  {
+    "postcode": "E7",
+    "latitude": 51.54614,
+    "longitude": 0.02868
+  },
+  {
+    "postcode": "E8",
+    "latitude": 51.54479,
+    "longitude": -0.06627
+  },
+  {
+    "postcode": "E9",
+    "latitude": 51.54554,
+    "longitude": -0.04049
+  },
+  {
+    "postcode": "EC1A",
+    "latitude": 51.51905,
+    "longitude": -0.09854
+  },
+  {
+    "postcode": "EC1M",
+    "latitude": 51.52095,
+    "longitude": -0.10285
+  },
+  {
+    "postcode": "EC1N",
+    "latitude": 51.51905,
+    "longitude": -0.10881
+  },
+  {
+    "postcode": "EC1R",
+    "latitude": 51.52555,
+    "longitude": -0.1078
+  },
+  {
+    "postcode": "EC1V",
+    "latitude": 51.52766,
+    "longitude": -0.09629
+  },
+  {
+    "postcode": "EC1Y",
+    "latitude": 51.52222,
+    "longitude": -0.09172
+  },
+  {
+    "postcode": "EC2A",
+    "latitude": 51.52237,
+    "longitude": -0.08273
+  },
+  {
+    "postcode": "EC2M",
+    "latitude": 51.51875,
+    "longitude": -0.08098
+  },
+  {
+    "postcode": "EC2N",
+    "latitude": 51.51497,
+    "longitude": -0.08423
+  },
+  {
+    "postcode": "EC2R",
+    "latitude": 51.51546,
+    "longitude": -0.08914
+  },
+  {
+    "postcode": "EC2V",
+    "latitude": 51.51612,
+    "longitude": -0.09299
+  },
+  {
+    "postcode": "EC2Y",
+    "latitude": 51.51925,
+    "longitude": -0.09267
+  },
+  {
+    "postcode": "EC3A",
+    "latitude": 51.51422,
+    "longitude": -0.07999
+  },
+  {
+    "postcode": "EC3M",
+    "latitude": 51.5116,
+    "longitude": -0.08186
+  },
+  {
+    "postcode": "EC3N",
+    "latitude": 51.51084,
+    "longitude": -0.07633
+  },
+  {
+    "postcode": "EC3R",
+    "latitude": 51.50981,
+    "longitude": -0.08206
+  },
+  {
+    "postcode": "EC3V",
+    "latitude": 51.51284,
+    "longitude": -0.08437
+  },
+  {
+    "postcode": "EC4A",
+    "latitude": 51.5155,
+    "longitude": -0.10914
+  },
+  {
+    "postcode": "EC4M",
+    "latitude": 51.51353,
+    "longitude": -0.09766
+  },
+  {
+    "postcode": "EC4N",
+    "latitude": 51.51235,
+    "longitude": -0.09113
+  },
+  {
+    "postcode": "EC4R",
+    "latitude": 51.51041,
+    "longitude": -0.08942
+  },
+  {
+    "postcode": "EC4V",
+    "latitude": 51.51165,
+    "longitude": -0.09954
+  },
+  {
+    "postcode": "EC4Y",
+    "latitude": 51.51166,
+    "longitude": -0.10733
+  },
+  {
+    "postcode": "EN1",
+    "latitude": 51.66026,
+    "longitude": -0.06492
+  },
+  {
+    "postcode": "EN2",
+    "latitude": 51.66683,
+    "longitude": -0.09467
+  },
+  {
+    "postcode": "EN3",
+    "latitude": 51.65708,
+    "longitude": -0.0358
+  },
+  {
+    "postcode": "EN4",
+    "latitude": 51.65495,
+    "longitude": -0.1587
+  },
+  {
+    "postcode": "EN5",
+    "latitude": 51.65595,
+    "longitude": -0.2105
+  },
+  {
+    "postcode": "HA0",
+    "latitude": 51.5509,
+    "longitude": -0.30843
+  },
+  {
+    "postcode": "HA1",
+    "latitude": 51.5751,
+    "longitude": -0.33787
+  },
+  {
+    "postcode": "HA2",
+    "latitude": 51.5803,
+    "longitude": -0.36384
+  },
+  {
+    "postcode": "HA3",
+    "latitude": 51.59714,
+    "longitude": -0.32049
+  },
+  {
+    "postcode": "HA4",
+    "latitude": 51.56875,
+    "longitude": -0.40432
+  },
+  {
+    "postcode": "HA5",
+    "latitude": 51.59754,
+    "longitude": -0.38305
+  },
+  {
+    "postcode": "HA6",
+    "latitude": 51.61425,
+    "longitude": -0.4274
+  },
+  {
+    "postcode": "HA7",
+    "latitude": 51.61313,
+    "longitude": -0.31335
+  },
+  {
+    "postcode": "HA8",
+    "latitude": 51.61504,
+    "longitude": -0.27513
+  },
+  {
+    "postcode": "HA9",
+    "latitude": 51.56499,
+    "longitude": -0.28748
+  },
+  {
+    "postcode": "IG1",
+    "latitude": 51.5617,
+    "longitude": 0.07211
+  },
+  {
+    "postcode": "IG11",
+    "latitude": 51.53303,
+    "longitude": 0.09901
+  },
+  {
+    "postcode": "IG2",
+    "latitude": 51.57877,
+    "longitude": 0.08114
+  },
+  {
+    "postcode": "IG3",
+    "latitude": 51.5647,
+    "longitude": 0.10208
+  },
+  {
+    "postcode": "IG4",
+    "latitude": 51.58013,
+    "longitude": 0.051
+  },
+  {
+    "postcode": "IG5",
+    "latitude": 51.5898,
+    "longitude": 0.06632
+  },
+  {
+    "postcode": "IG6",
+    "latitude": 51.59466,
+    "longitude": 0.09146
+  },
+  {
+    "postcode": "IG7",
+    "latitude": 51.61753,
+    "longitude": 0.09838
+  },
+  {
+    "postcode": "IG8",
+    "latitude": 51.60671,
+    "longitude": 0.03645
+  },
+  {
+    "postcode": "KT1",
+    "latitude": 51.40813,
+    "longitude": -0.2985
+  },
+  {
+    "postcode": "KT2",
+    "latitude": 51.42252,
+    "longitude": -0.28631
+  },
+  {
+    "postcode": "KT3",
+    "latitude": 51.40335,
+    "longitude": -0.25711
+  },
+  {
+    "postcode": "KT4",
+    "latitude": 51.37573,
+    "longitude": -0.24504
+  },
+  {
+    "postcode": "KT5",
+    "latitude": 51.39014,
+    "longitude": -0.28722
+  },
+  {
+    "postcode": "KT6",
+    "latitude": 51.38453,
+    "longitude": -0.304
+  },
+  {
+    "postcode": "KT9",
+    "latitude": 51.35942,
+    "longitude": -0.30905
+  },
+  {
+    "postcode": "N1",
+    "latitude": 51.53554,
+    "longitude": -0.0954
+  },
+  {
+    "postcode": "N10",
+    "latitude": 51.59407,
+    "longitude": -0.14684
+  },
+  {
+    "postcode": "N11",
+    "latitude": 51.61563,
+    "longitude": -0.14323
+  },
+  {
+    "postcode": "N12",
+    "latitude": 51.61261,
+    "longitude": -0.17744
+  },
+  {
+    "postcode": "N13",
+    "latitude": 51.61885,
+    "longitude": -0.10573
+  },
+  {
+    "postcode": "N14",
+    "latitude": 51.63694,
+    "longitude": -0.1302
+  },
+  {
+    "postcode": "N15",
+    "latitude": 51.58437,
+    "longitude": -0.08219
+  },
+  {
+    "postcode": "N16",
+    "latitude": 51.5636,
+    "longitude": -0.07527
+  },
+  {
+    "postcode": "N17",
+    "latitude": 51.59712,
+    "longitude": -0.0725
+  },
+  {
+    "postcode": "N18",
+    "latitude": 51.6139,
+    "longitude": -0.06576
+  },
+  {
+    "postcode": "N19",
+    "latitude": 51.56285,
+    "longitude": -0.13199
+  },
+  {
+    "postcode": "N1C",
+    "latitude": 51.53686,
+    "longitude": -0.12758
+  },
+  {
+    "postcode": "N2",
+    "latitude": 51.5864,
+    "longitude": -0.17143
+  },
+  {
+    "postcode": "N20",
+    "latitude": 51.62814,
+    "longitude": -0.17813
+  },
+  {
+    "postcode": "N21",
+    "latitude": 51.63605,
+    "longitude": -0.1013
+  },
+  {
+    "postcode": "N22",
+    "latitude": 51.60031,
+    "longitude": -0.1102
+  },
+  {
+    "postcode": "N3",
+    "latitude": 51.60135,
+    "longitude": -0.194
+  },
+  {
+    "postcode": "N4",
+    "latitude": 51.56864,
+    "longitude": -0.1034
+  },
+  {
+    "postcode": "N5",
+    "latitude": 51.55498,
+    "longitude": -0.10101
+  },
+  {
+    "postcode": "N6",
+    "latitude": 51.57353,
+    "longitude": -0.14919
+  },
+  {
+    "postcode": "N7",
+    "latitude": 51.55366,
+    "longitude": -0.12347
+  },
+  {
+    "postcode": "N8",
+    "latitude": 51.58378,
+    "longitude": -0.11647
+  },
+  {
+    "postcode": "N9",
+    "latitude": 51.62986,
+    "longitude": -0.05967
+  },
+  {
+    "postcode": "NW1",
+    "latitude": 51.5366,
+    "longitude": -0.14283
+  },
+  {
+    "postcode": "NW10",
+    "latitude": 51.5423,
+    "longitude": -0.25454
+  },
+  {
+    "postcode": "NW11",
+    "latitude": 51.57647,
+    "longitude": -0.19724
+  },
+  {
+    "postcode": "NW2",
+    "latitude": 51.55735,
+    "longitude": -0.21987
+  },
+  {
+    "postcode": "NW3",
+    "latitude": 51.55519,
+    "longitude": -0.17339
+  },
+  {
+    "postcode": "NW4",
+    "latitude": 51.58974,
+    "longitude": -0.22498
+  },
+  {
+    "postcode": "NW5",
+    "latitude": 51.55408,
+    "longitude": -0.14466
+  },
+  {
+    "postcode": "NW6",
+    "latitude": 51.54244,
+    "longitude": -0.1999
+  },
+  {
+    "postcode": "NW7",
+    "latitude": 51.61991,
+    "longitude": -0.23894
+  },
+  {
+    "postcode": "NW8",
+    "latitude": 51.5318,
+    "longitude": -0.17349
+  },
+  {
+    "postcode": "NW9",
+    "latitude": 51.58615,
+    "longitude": -0.25727
+  },
+  {
+    "postcode": "RM1",
+    "latitude": 51.58533,
+    "longitude": 0.18347
+  },
+  {
+    "postcode": "RM10",
+    "latitude": 51.54459,
+    "longitude": 0.15984
+  },
+  {
+    "postcode": "RM11",
+    "latitude": 51.57216,
+    "longitude": 0.21609
+  },
+  {
+    "postcode": "RM12",
+    "latitude": 51.55391,
+    "longitude": 0.20249
+  },
+  {
+    "postcode": "RM13",
+    "latitude": 51.52117,
+    "longitude": 0.1957
+  },
+  {
+    "postcode": "RM14",
+    "latitude": 51.55602,
+    "longitude": 0.29662
+  },
+  {
+    "postcode": "RM2",
+    "latitude": 51.58614,
+    "longitude": 0.20048
+  },
+  {
+    "postcode": "RM3",
+    "latitude": 51.60049,
+    "longitude": 0.22709
+  },
+  {
+    "postcode": "RM5",
+    "latitude": 51.59882,
+    "longitude": 0.16187
+  },
+  {
+    "postcode": "RM6",
+    "latitude": 51.57992,
+    "longitude": 0.12516
+  },
+  {
+    "postcode": "RM7",
+    "latitude": 51.57392,
+    "longitude": 0.16866
+  },
+  {
+    "postcode": "RM8",
+    "latitude": 51.55571,
+    "longitude": 0.13125
+  },
+  {
+    "postcode": "RM9",
+    "latitude": 51.53553,
+    "longitude": 0.1387
+  },
+  {
+    "postcode": "SE1",
+    "latitude": 51.49446,
+    "longitude": -0.09328
+  },
+  {
+    "postcode": "SE10",
+    "latitude": 51.48258,
+    "longitude": 0.00075
+  },
+  {
+    "postcode": "SE11",
+    "latitude": 51.48917,
+    "longitude": -0.11314
+  },
+  {
+    "postcode": "SE12",
+    "latitude": 51.44237,
+    "longitude": 0.0206
+  },
+  {
+    "postcode": "SE13",
+    "latitude": 51.45962,
+    "longitude": -0.01166
+  },
+  {
+    "postcode": "SE14",
+    "latitude": 51.47397,
+    "longitude": -0.04298
+  },
+  {
+    "postcode": "SE15",
+    "latitude": 51.47106,
+    "longitude": -0.0627
+  },
+  {
+    "postcode": "SE16",
+    "latitude": 51.49434,
+    "longitude": -0.05646
+  },
+  {
+    "postcode": "SE17",
+    "latitude": 51.48678,
+    "longitude": -0.09497
+  },
+  {
+    "postcode": "SE18",
+    "latitude": 51.48264,
+    "longitude": 0.06909
+  },
+  {
+    "postcode": "SE19",
+    "latitude": 51.41827,
+    "longitude": -0.08568
+  },
+  {
+    "postcode": "SE2",
+    "latitude": 51.48973,
+    "longitude": 0.11955
+  },
+  {
+    "postcode": "SE20",
+    "latitude": 51.41518,
+    "longitude": -0.0598
+  },
+  {
+    "postcode": "SE21",
+    "latitude": 51.44058,
+    "longitude": -0.08633
+  },
+  {
+    "postcode": "SE22",
+    "latitude": 51.45283,
+    "longitude": -0.07268
+  },
+  {
+    "postcode": "SE23",
+    "latitude": 51.44189,
+    "longitude": -0.04716
+  },
+  {
+    "postcode": "SE24",
+    "latitude": 51.45548,
+    "longitude": -0.10058
+  },
+  {
+    "postcode": "SE25",
+    "latitude": 51.39791,
+    "longitude": -0.08051
+  },
+  {
+    "postcode": "SE26",
+    "latitude": 51.42693,
+    "longitude": -0.05372
+  },
+  {
+    "postcode": "SE27",
+    "latitude": 51.43173,
+    "longitude": -0.10144
+  },
+  {
+    "postcode": "SE28",
+    "latitude": 51.49958,
+    "longitude": 0.10293
+  },
+  {
+    "postcode": "SE3",
+    "latitude": 51.46806,
+    "longitude": 0.02006
+  },
+  {
+    "postcode": "SE4",
+    "latitude": 51.46077,
+    "longitude": -0.03419
+  },
+  {
+    "postcode": "SE5",
+    "latitude": 51.47492,
+    "longitude": -0.08976
+  },
+  {
+    "postcode": "SE6",
+    "latitude": 51.43595,
+    "longitude": -0.017
+  },
+  {
+    "postcode": "SE7",
+    "latitude": 51.48528,
+    "longitude": 0.03573
+  },
+  {
+    "postcode": "SE8",
+    "latitude": 51.47888,
+    "longitude": -0.0272
+  },
+  {
+    "postcode": "SE9",
+    "latitude": 51.44486,
+    "longitude": 0.0584
+  },
+  {
+    "postcode": "SM1",
+    "latitude": 51.37061,
+    "longitude": -0.1922
+  },
+  {
+    "postcode": "SM2",
+    "latitude": 51.34516,
+    "longitude": -0.20452
+  },
+  {
+    "postcode": "SM3",
+    "latitude": 51.37177,
+    "longitude": -0.21662
+  },
+  {
+    "postcode": "SM4",
+    "latitude": 51.39116,
+    "longitude": -0.20249
+  },
+  {
+    "postcode": "SM5",
+    "latitude": 51.36444,
+    "longitude": -0.16887
+  },
+  {
+    "postcode": "SM6",
+    "latitude": 51.36049,
+    "longitude": -0.14676
+  },
+  {
+    "postcode": "SW10",
+    "latitude": 51.48219,
+    "longitude": -0.18332
+  },
+  {
+    "postcode": "SW11",
+    "latitude": 51.46433,
+    "longitude": -0.16438
+  },
+  {
+    "postcode": "SW12",
+    "latitude": 51.44639,
+    "longitude": -0.15055
+  },
+  {
+    "postcode": "SW13",
+    "latitude": 51.4732,
+    "longitude": -0.23995
+  },
+  {
+    "postcode": "SW14",
+    "latitude": 51.46325,
+    "longitude": -0.26826
+  },
+  {
+    "postcode": "SW15",
+    "latitude": 51.45254,
+    "longitude": -0.23629
+  },
+  {
+    "postcode": "SW16",
+    "latitude": 51.42044,
+    "longitude": -0.12658
+  },
+  {
+    "postcode": "SW17",
+    "latitude": 51.43107,
+    "longitude": -0.16721
+  },
+  {
+    "postcode": "SW18",
+    "latitude": 51.45159,
+    "longitude": -0.19414
+  },
+  {
+    "postcode": "SW19",
+    "latitude": 51.42445,
+    "longitude": -0.20454
+  },
+  {
+    "postcode": "SW1A",
+    "latitude": 51.50383,
+    "longitude": -0.12963
+  },
+  {
+    "postcode": "SW1E",
+    "latitude": 51.49913,
+    "longitude": -0.14047
+  },
+  {
+    "postcode": "SW1H",
+    "latitude": 51.49925,
+    "longitude": -0.13437
+  },
+  {
+    "postcode": "SW1P",
+    "latitude": 51.49553,
+    "longitude": -0.133
+  },
+  {
+    "postcode": "SW1V",
+    "latitude": 51.4912,
+    "longitude": -0.14142
+  },
+  {
+    "postcode": "SW1W",
+    "latitude": 51.49413,
+    "longitude": -0.15041
+  },
+  {
+    "postcode": "SW1X",
+    "latitude": 51.49868,
+    "longitude": -0.15811
+  },
+  {
+    "postcode": "SW1Y",
+    "latitude": 51.50764,
+    "longitude": -0.13288
+  },
+  {
+    "postcode": "SW2",
+    "latitude": 51.45042,
+    "longitude": -0.11842
+  },
+  {
+    "postcode": "SW20",
+    "latitude": 51.40816,
+    "longitude": -0.22906
+  },
+  {
+    "postcode": "SW3",
+    "latitude": 51.49211,
+    "longitude": -0.1662
+  },
+  {
+    "postcode": "SW4",
+    "latitude": 51.46057,
+    "longitude": -0.13768
+  },
+  {
+    "postcode": "SW5",
+    "latitude": 51.49213,
+    "longitude": -0.1902
+  },
+  {
+    "postcode": "SW6",
+    "latitude": 51.47968,
+    "longitude": -0.20204
+  },
+  {
+    "postcode": "SW7",
+    "latitude": 51.49781,
+    "longitude": -0.17649
+  },
+  {
+    "postcode": "SW8",
+    "latitude": 51.47869,
+    "longitude": -0.13482
+  },
+  {
+    "postcode": "SW9",
+    "latitude": 51.46943,
+    "longitude": -0.11431
+  },
+  {
+    "postcode": "TW1",
+    "latitude": 51.45011,
+    "longitude": -0.33037
+  },
+  {
+    "postcode": "TW10",
+    "latitude": 51.44563,
+    "longitude": -0.29313
+  },
+  {
+    "postcode": "TW11",
+    "latitude": 51.42344,
+    "longitude": -0.33324
+  },
+  {
+    "postcode": "TW12",
+    "latitude": 51.41997,
+    "longitude": -0.36559
+  },
+  {
+    "postcode": "TW13",
+    "latitude": 51.43689,
+    "longitude": -0.40881
+  },
+  {
+    "postcode": "TW14",
+    "latitude": 51.45424,
+    "longitude": -0.42761
+  },
+  {
+    "postcode": "TW2",
+    "latitude": 51.44814,
+    "longitude": -0.35615
+  },
+  {
+    "postcode": "TW3",
+    "latitude": 51.46673,
+    "longitude": -0.36408
+  },
+  {
+    "postcode": "TW4",
+    "latitude": 51.46493,
+    "longitude": -0.391
+  },
+  {
+    "postcode": "TW5",
+    "latitude": 51.48209,
+    "longitude": -0.39255
+  },
+  {
+    "postcode": "TW6",
+    "latitude": 51.46981,
+    "longitude": -0.45919
+  },
+  {
+    "postcode": "TW7",
+    "latitude": 51.47333,
+    "longitude": -0.34215
+  },
+  {
+    "postcode": "TW8",
+    "latitude": 51.49016,
+    "longitude": -0.30721
+  },
+  {
+    "postcode": "TW9",
+    "latitude": 51.46759,
+    "longitude": -0.2947
+  },
+  {
+    "postcode": "UB1",
+    "latitude": 51.51645,
+    "longitude": -0.36793
+  },
+  {
+    "postcode": "UB10",
+    "latitude": 51.54545,
+    "longitude": -0.4528
+  },
+  {
+    "postcode": "UB11",
+    "latitude": 51.51001,
+    "longitude": -0.44562
+  },
+  {
+    "postcode": "UB2",
+    "latitude": 51.49907,
+    "longitude": -0.37676
+  },
+  {
+    "postcode": "UB3",
+    "latitude": 51.50322,
+    "longitude": -0.4272
+  },
+  {
+    "postcode": "UB4",
+    "latitude": 51.52522,
+    "longitude": -0.41045
+  },
+  {
+    "postcode": "UB5",
+    "latitude": 51.54369,
+    "longitude": -0.37394
+  },
+  {
+    "postcode": "UB6",
+    "latitude": 51.53767,
+    "longitude": -0.33921
+  },
+  {
+    "postcode": "UB7",
+    "latitude": 51.49545,
+    "longitude": -0.47034
+  },
+  {
+    "postcode": "UB8",
+    "latitude": 51.5357,
+    "longitude": -0.46945
+  },
+  {
+    "postcode": "UB9",
+    "latitude": 51.58199,
+    "longitude": -0.49035
+  },
+  {
+    "postcode": "W10",
+    "latitude": 51.52256,
+    "longitude": -0.21738
+  },
+  {
+    "postcode": "W11",
+    "latitude": 51.51284,
+    "longitude": -0.20545
+  },
+  {
+    "postcode": "W12",
+    "latitude": 51.50951,
+    "longitude": -0.23505
+  },
+  {
+    "postcode": "W13",
+    "latitude": 51.51265,
+    "longitude": -0.32294
+  },
+  {
+    "postcode": "W14",
+    "latitude": 51.49644,
+    "longitude": -0.21185
+  },
+  {
+    "postcode": "W1B",
+    "latitude": 51.51647,
+    "longitude": -0.14222
+  },
+  {
+    "postcode": "W1C",
+    "latitude": 51.51445,
+    "longitude": -0.14975
+  },
+  {
+    "postcode": "W1D",
+    "latitude": 51.51429,
+    "longitude": -0.1336
+  },
+  {
+    "postcode": "W1F",
+    "latitude": 51.51251,
+    "longitude": -0.13537
+  },
+  {
+    "postcode": "W1G",
+    "latitude": 51.51795,
+    "longitude": -0.14662
+  },
+  {
+    "postcode": "W1H",
+    "latitude": 51.51693,
+    "longitude": -0.15906
+  },
+  {
+    "postcode": "W1J",
+    "latitude": 51.50757,
+    "longitude": -0.14376
+  },
+  {
+    "postcode": "W1K",
+    "latitude": 51.50891,
+    "longitude": -0.15161
+  },
+  {
+    "postcode": "W1S",
+    "latitude": 51.51112,
+    "longitude": -0.14285
+  },
+  {
+    "postcode": "W1T",
+    "latitude": 51.52036,
+    "longitude": -0.13655
+  },
+  {
+    "postcode": "W1U",
+    "latitude": 51.51718,
+    "longitude": -0.15193
+  },
+  {
+    "postcode": "W1W",
+    "latitude": 51.52041,
+    "longitude": -0.14227
+  },
+  {
+    "postcode": "W2",
+    "latitude": 51.5138,
+    "longitude": -0.18135
+  },
+  {
+    "postcode": "W3",
+    "latitude": 51.51159,
+    "longitude": -0.273
+  },
+  {
+    "postcode": "W4",
+    "latitude": 51.49018,
+    "longitude": -0.26539
+  },
+  {
+    "postcode": "W5",
+    "latitude": 51.51234,
+    "longitude": -0.29969
+  },
+  {
+    "postcode": "W6",
+    "latitude": 51.4932,
+    "longitude": -0.22891
+  },
+  {
+    "postcode": "W7",
+    "latitude": 51.51166,
+    "longitude": -0.33563
+  },
+  {
+    "postcode": "W8",
+    "latitude": 51.50137,
+    "longitude": -0.19519
+  },
+  {
+    "postcode": "W9",
+    "latitude": 51.52883,
+    "longitude": -0.19156
+  },
+  {
+    "postcode": "WC1A",
+    "latitude": 51.51709,
+    "longitude": -0.12668
+  },
+  {
+    "postcode": "WC1B",
+    "latitude": 51.51952,
+    "longitude": -0.12755
+  },
+  {
+    "postcode": "WC1E",
+    "latitude": 51.52212,
+    "longitude": -0.1323
+  },
+  {
+    "postcode": "WC1H",
+    "latitude": 51.5264,
+    "longitude": -0.12612
+  },
+  {
+    "postcode": "WC1N",
+    "latitude": 51.5239,
+    "longitude": -0.12262
+  },
+  {
+    "postcode": "WC1R",
+    "latitude": 51.51995,
+    "longitude": -0.11611
+  },
+  {
+    "postcode": "WC1V",
+    "latitude": 51.5177,
+    "longitude": -0.11677
+  },
+  {
+    "postcode": "WC1X",
+    "latitude": 51.52459,
+    "longitude": -0.11468
+  },
+  {
+    "postcode": "WC2A",
+    "latitude": 51.51628,
+    "longitude": -0.11371
+  },
+  {
+    "postcode": "WC2B",
+    "latitude": 51.51408,
+    "longitude": -0.12002
+  },
+  {
+    "postcode": "WC2E",
+    "latitude": 51.51235,
+    "longitude": -0.12194
+  },
+  {
+    "postcode": "WC2H",
+    "latitude": 51.51248,
+    "longitude": -0.12814
+  },
+  {
+    "postcode": "WC2N",
+    "latitude": 51.50942,
+    "longitude": -0.12496
+  },
+  {
+    "postcode": "WC2R",
+    "latitude": 51.51087,
+    "longitude": -0.11704
+  }
+]

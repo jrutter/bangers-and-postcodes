@@ -8,7 +8,9 @@ def test_place_ids_and_mbids_are_unique():
 
 
 def test_postcodes_cover_the_brief():
-    assert postcodes() == ["SW13", "SW15", "TW9", "TW10", "KT1", "KT2", "SW19", "SW14", "SW6", "SW18"]
+    codes = postcodes()
+    for code in ["SW13", "SW15", "TW9", "TW10", "KT1", "KT2", "SW19", "SW14", "SW6", "SW18"]:
+        assert code in codes
 
 
 def test_ambiguous_names_stay_on_the_london_area():

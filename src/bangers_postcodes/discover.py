@@ -1,4 +1,4 @@
-"""Find musical artists linked to southwest London places."""
+"""Find musical artists linked to London places."""
 
 from __future__ import annotations
 
@@ -6,10 +6,13 @@ import re
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
+from pathlib import Path
 
 from bangers_postcodes.areas import PLACES, Place, places_by_mbid, places_by_qid
 from bangers_postcodes.musicbrainz import MusicBrainzClient
-from bangers_postcodes.wikidata import fetch_rows, group_rows, has_specific_music_role
+from bangers_postcodes.wikidata import build_query, fetch_rows, group_rows, has_specific_music_role
+
+CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / ".mb-cache"
 
 # Tags and comment words that mean "this MusicBrainz artist is musical"
 # without a further release-group lookup.
@@ -153,7 +156,7 @@ def discover(
 ) -> dict:
     """Run discovery against MusicBrainz and Wikidata and return the artist document."""
     log = progress or (lambda message: None)
-    client = mb or MusicBrainzClient()
+    client = mb or MusicBrainzClient(cache_dir=CACHE_DIR)
     owns_client = mb is None
     try:
         raw_by_mbid: dict[str, dict] = {}
@@ -165,21 +168,11 @@ def discover(
                 if locality_from_mb(hit):
                     raw_by_mbid[hit["id"]] = hit
                     kept += 1
-            log(f"  {len(hits)} hits, {kept} in southwest London")
+            log(f"  {len(hits)} hits, {kept} in London")
 
         if wikidata_rows is None:
             log("Wikidata: place of birth and location of formation")
-            last_error: Exception | None = None
-            for attempt in range(4):
-                try:
-                    wikidata_rows = group_rows(fetch_rows())
-                    break
-                except Exception as exc:  # noqa: BLE001 — Wikidata occasionally times out
-                    last_error = exc
-                    log(f"  Wikidata attempt {attempt + 1} failed: {exc}")
-                    time.sleep(2 * (attempt + 1))
-            else:
-                raise RuntimeError(f"Wikidata lookup failed: {last_error}")
+            wikidata_rows = _fetch_wikidata(log)
             log(f"  {len(wikidata_rows)} Wikidata place claims")
 
         extra_lookups = []
@@ -204,7 +197,7 @@ def discover(
                 release_cache[mbid] = client.release_groups(mbid)
             return release_cache[mbid]
 
-        artists = assemble_artists(raw_by_mbid, wikidata_rows, releases_for)
+        artists = dedupe_artists(assemble_artists(raw_by_mbid, wikidata_rows, releases_for))
     finally:
         if owns_client:
             client.close()
@@ -233,6 +226,7 @@ def assemble_artists(
         if not mb_places and not wd_places:
             continue
         record = artist_record(raw, mb_places, wd_places)
+        _fill_span_from_wikidata(record, wd_by_mbid.get(mbid, []))
         if not usable_name(record.get("name")) or not is_musical(record, releases_for):
             continue
         artists.append(record)
@@ -281,7 +275,7 @@ def _append_wikidata_artist(artists: list[dict], rows: list[dict], *, mbid: str 
             "type": "Group" if _looks_like_group(rows) else "Person",
             "disambiguation": None,
             "country": None,
-            "life_span": {"begin": None, "end": None, "ended": None},
+            "life_span": _span_from_rows(rows),
             "tags": [],
             "musicbrainz": None,
             "locality": places,
@@ -289,10 +283,142 @@ def _append_wikidata_artist(artists: list[dict], rows: list[dict], *, mbid: str 
     )
 
 
+def dedupe_artists(artists: list[dict]) -> list[dict]:
+    """Collapse the same artist when Wikidata agrees, or the name, type, and place do."""
+    kept: list[dict] = []
+    for artist in artists:
+        match = next((existing for existing in kept if _same_artist(existing, artist)), None)
+        if match is None:
+            kept.append(artist)
+            continue
+        _merge_artist(match, artist)
+    kept.sort(key=lambda artist: (artist.get("sort_name") or artist["name"]).casefold())
+    return kept
+
+
+def _same_artist(left: dict, right: dict) -> bool:
+    left_qid = left.get("wikidata_qid")
+    right_qid = right.get("wikidata_qid")
+    if left_qid and right_qid:
+        return left_qid == right_qid
+    if left_qid and right_qid and left_qid != right_qid:
+        return False
+    if _name_key(left.get("name")) != _name_key(right.get("name")):
+        return False
+    if (left.get("type") or "").casefold() != (right.get("type") or "").casefold():
+        return False
+    left_places = {place["place_id"] for place in left.get("locality") or []}
+    right_places = {place["place_id"] for place in right.get("locality") or []}
+    return bool(left_places & right_places)
+
+
+def _merge_artist(primary: dict, extra: dict) -> None:
+    if _artist_rank(extra) > _artist_rank(primary):
+        primary["name"], extra["name"] = extra.get("name"), primary.get("name")
+        primary["sort_name"], extra["sort_name"] = extra.get("sort_name"), primary.get("sort_name")
+        primary["mbid"], extra["mbid"] = extra.get("mbid"), primary.get("mbid")
+        primary["disambiguation"] = extra.get("disambiguation") or primary.get("disambiguation")
+    if not primary.get("wikidata_qid"):
+        primary["wikidata_qid"] = extra.get("wikidata_qid")
+    if not primary.get("_wikidata_name"):
+        primary["_wikidata_name"] = extra.get("_wikidata_name")
+    if not primary.get("mbid"):
+        primary["mbid"] = extra.get("mbid")
+    primary["locality"] = _merge_places(primary.get("locality") or [], extra.get("locality") or [])
+    tags = list(primary.get("tags") or [])
+    for tag in extra.get("tags") or []:
+        if tag not in tags:
+            tags.append(tag)
+    primary["tags"] = tags
+    primary["life_span"] = _prefer_span(primary.get("life_span"), extra.get("life_span"))
+
+
+def _artist_rank(artist: dict) -> tuple:
+    """Prefer the public name, then the record that actually carries the music tags.
+
+    Two MusicBrainz rows can share one Wikidata item. Claim count alone kept
+    "4T Recordings" ahead of Four Tet, because the imprint row had picked up
+    an extra place claim and the names sorted first.
+    """
+    label = _name_key(artist.get("_wikidata_name"))
+    matches_label = 1 if label and _name_key(artist.get("name")) == label else 0
+    claims = sum(len(place.get("claims") or []) for place in artist.get("locality") or [])
+    span = artist.get("life_span") or {}
+    return (
+        matches_label,
+        len(artist.get("tags") or []),
+        claims,
+        1 if span.get("begin") else 0,
+        1 if artist.get("mbid") else 0,
+    )
+
+
+def _name_key(name: str | None) -> str:
+    text = re.sub(r"[^a-z0-9]+", "", (name or "").casefold())
+    return text[3:] if text.startswith("the") else text
+
+
+def _prefer_span(left: dict | None, right: dict | None) -> dict | None:
+    if not left:
+        return right
+    if not right:
+        return left
+    chosen = dict(left)
+    if not chosen.get("begin") and right.get("begin"):
+        chosen["begin"] = right.get("begin")
+        chosen["source"] = right.get("source") or chosen.get("source")
+    if not chosen.get("end") and right.get("end"):
+        chosen["end"] = right.get("end")
+    if chosen.get("ended") is None and right.get("ended") is not None:
+        chosen["ended"] = right.get("ended")
+    return chosen
+
+
+def _fill_span_from_wikidata(record: dict, rows: list[dict]) -> None:
+    extra = _span_from_rows(rows)
+    record["life_span"] = _prefer_span(record.get("life_span"), extra)
+
+
+def _span_from_rows(rows: list[dict]) -> dict:
+    begins = [row.get("born") or row.get("inception") for row in rows]
+    ends = [row.get("died") or row.get("dissolved") for row in rows]
+    begin = next((year for year in begins if isinstance(year, int)), None)
+    end = next((year for year in ends if isinstance(year, int)), None)
+    return {
+        "begin": str(begin) if begin else None,
+        "end": str(end) if end else None,
+        "ended": True if end else False if begin else None,
+        "source": "wikidata" if begin or end else None,
+    }
+
+
+def _fetch_wikidata(log) -> list[dict]:
+    qids = [place.wikidata_qid for place in PLACES if place.wikidata_qid]
+    rows: list[dict] = []
+    batch = 12
+    last_error: Exception | None = None
+    for index in range(0, len(qids), batch):
+        chunk = qids[index : index + batch]
+        log(f"  Wikidata places {index + 1}-{index + len(chunk)} of {len(qids)}")
+        for attempt in range(4):
+            try:
+                rows.extend(fetch_rows(query=build_query(chunk)))
+                last_error = None
+                break
+            except Exception as exc:  # noqa: BLE001 — Wikidata occasionally times out
+                last_error = exc
+                log(f"  Wikidata attempt {attempt + 1} failed: {exc}")
+                time.sleep(2 * (attempt + 1))
+        else:
+            raise RuntimeError(f"Wikidata lookup failed: {last_error}")
+        time.sleep(0.5)
+    return group_rows(rows)
+
+
 def document(artists: list[dict]) -> dict:
     return {
         "project": "Bangers & Postcodes",
-        "description": "Musical artists linked to southwest London, from Barnes to Wimbledon.",
+        "description": "Musical artists linked to London, from the City and the inner postcodes out to the boroughs of Greater London.",
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "places": [place.to_dict() for place in PLACES],
         "artist_count": len(artists),
@@ -359,6 +485,7 @@ def artist_record(raw: dict, mb_places: list[dict], wd_places: list[dict]) -> di
             "begin": life.get("begin"),
             "end": life.get("end"),
             "ended": life.get("ended"),
+            "source": "musicbrainz" if life.get("begin") or life.get("end") else None,
         },
         "tags": tags,
         "musicbrainz": {
@@ -453,11 +580,13 @@ def _looks_like_group(rows: list[dict]) -> bool:
 
 
 def attach_wikidata_qids(artists: list[dict], rows: list[dict]) -> None:
-    qid_by_mbid = {}
+    by_mbid = {}
     for row in rows:
         if row.get("mbid") and row.get("qid"):
-            qid_by_mbid[row["mbid"]] = row["qid"]
+            by_mbid[row["mbid"]] = row
     for artist in artists:
-        if artist.get("mbid") in qid_by_mbid:
-            artist["wikidata_qid"] = qid_by_mbid[artist["mbid"]]
-        artist.pop("_qids_unused", None)
+        row = by_mbid.get(artist.get("mbid"))
+        if row:
+            artist["wikidata_qid"] = row["qid"]
+            if row.get("name"):
+                artist["_wikidata_name"] = row["name"]

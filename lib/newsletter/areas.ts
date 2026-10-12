@@ -1,12 +1,15 @@
 import { areasInPostcode, places, postcodes } from "@/lib/catalogue"
 import { placeGigPostcodes } from "@/lib/gigs/select"
 import type { Scope } from "@/lib/catalogue"
+import { regionForPostcode } from "@/lib/regions"
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export type NewsletterArea = {
   code: string
   label: string
+  regionId: string
+  regionName: string
 }
 
 export function subscribablePostcodes(): string[] {
@@ -14,10 +17,15 @@ export function subscribablePostcodes(): string[] {
 }
 
 export function newsletterAreas(): NewsletterArea[] {
-  return subscribablePostcodes().map((code) => ({
-    code,
-    label: areaLabel(code),
-  }))
+  return subscribablePostcodes().map((code) => {
+    const region = regionForPostcode(code)
+    return {
+      code,
+      label: areaLabel(code),
+      regionId: region?.id ?? "london",
+      regionName: region?.name ?? "London",
+    }
+  })
 }
 
 export function areaLabel(code: string): string {

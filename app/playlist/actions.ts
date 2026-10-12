@@ -4,19 +4,25 @@ import { redirect, unstable_rethrow } from "next/navigation"
 
 import { playlistEventProperties } from "@/lib/analytics"
 import { artistsForScope, gigScopePhrase, isGigScope, parseScope, scopeLabel, scopeValue, type Scope } from "@/lib/catalogue"
+import { eraLabel, filterArtists, parseEra, PLAYLIST_TRACK_CAP, playlistCandidates, withEra } from "@/lib/era"
 import { loadRegionalGigs } from "@/lib/gigs/cache"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
 import { artistRecordsForGigs, selectGigs, selectionForScope } from "@/lib/gigs/select"
 import { spotifyIdHints } from "@/lib/gigs/spotify"
-import { gigPlaylistDescription, playlistDescription, playlistName, trackUris } from "@/lib/playlist"
+import { loadOrigins } from "@/lib/favourites-origin"
+import { readFavouriteArtists } from "@/lib/favourites-spotify"
+import { englishPlaylistDescription, gigPlaylistDescription, playlistDescription, playlistName, trackUris } from "@/lib/playlist"
 import { captureServerIfAllowed } from "@/lib/posthog-server"
 import { getUserToken } from "@/lib/session"
+import { matchArtistsCached } from "@/lib/spotify-match"
 import { SpotifyError, appendSpotifyFailure, spotifyClient } from "@/lib/spotify"
+import { TasteScopeError } from "@/lib/taste-spotify"
 import type { ArtistRecord } from "@/lib/types"
 
 export async function createPlaylist(formData: FormData) {
   const scope = parseScope(String(formData.get("scope") || "all"))
-  const back = scope ? `/playlist?scope=${encodeURIComponent(scopeValue(scope))}` : "/playlist"
+  const era = parseEra(String(formData.get("era") || ""))
+  const back = withEra(scope ? `/playlist?scope=${encodeURIComponent(scopeValue(scope))}` : "/playlist", era)
   const isPublic = formData.get("public") === "1"
   if (!scope) {
     await reportPlaylist({ success: false, status: "scope", scopeKind: "unknown", scopeId: "unknown", isPublic, trackCount: 0 })
@@ -39,33 +45,55 @@ export async function createPlaylist(formData: FormData) {
   const name = playlistName(label, String(formData.get("name") || ""))
 
   let created: { url: string | null; trackCount: number; name: string } | null = null
-  let failure: "tracks" | "spotify" | "gigs" | "gig-keys" | "unknown" | null = null
+  let failure: "tracks" | "spotify" | "gigs" | "gig-keys" | "taste" | "unknown" | null = null
   let spotifyFailure: SpotifyError | null = null
   try {
-    const loaded = isGigScope(scope)
-      ? await artistsFromGigs(scope)
-      : { artists: artistsForScope(scope), failure: null, hints: undefined }
-    if (loaded.failure) {
-      failure = loaded.failure
-    } else {
-      const matched = isGigScope(scope)
-        ? await client.matchGigLineup(loaded.artists, loaded.hints)
-        : await client.matchCatalogue(loaded.artists)
-      const uris = trackUris(matched)
+    if (scope.kind === "english") {
+      const favourites = await readFavouriteArtists(token)
+      const origins = await loadOrigins(favourites, 40_000)
+      const ids = favourites.filter((artist) => origins.get(artist.id)?.status === "england").map((artist) => artist.id)
+      const uris = ids.length > 0 ? await client.tracksForArtists(ids) : []
       if (uris.length === 0) {
         failure = "tracks"
       } else {
         created = await client.createPlaylist(token, {
           name,
-          description: isGigScope(scope) ? gigPlaylistDescription(gigScopePhrase(scope)) : playlistDescription(label),
+          description: englishPlaylistDescription(),
           isPublic,
           uris,
         })
       }
+    } else {
+      const loaded = isGigScope(scope)
+        ? await artistsFromGigs(scope)
+        : { artists: artistsForScope(scope), failure: null, hints: undefined }
+      if (loaded.failure) {
+        failure = loaded.failure
+      } else {
+        const eraArtists = isGigScope(scope) ? loaded.artists : filterArtists(loaded.artists, era)
+        const matched = isGigScope(scope)
+          ? await client.matchGigLineup(eraArtists, loaded.hints)
+          : await matchArtistsCached(playlistCandidates(eraArtists))
+        const uris = trackUris(matched).slice(0, PLAYLIST_TRACK_CAP)
+        if (uris.length === 0) {
+          failure = "tracks"
+        } else {
+          created = await client.createPlaylist(token, {
+            name,
+            description: isGigScope(scope)
+              ? gigPlaylistDescription(gigScopePhrase(scope))
+              : playlistDescription(era ? `${label} (${eraLabel(era)})` : label),
+            isPublic,
+            uris,
+          })
+        }
+      }
     }
   } catch (error) {
     unstable_rethrow(error)
-    if (error instanceof SpotifyError) {
+    if (error instanceof TasteScopeError) {
+      failure = "taste"
+    } else if (error instanceof SpotifyError) {
       spotifyFailure = error
     } else {
       console.error("[playlist] create failed", error instanceof Error ? error.message : "unknown")
@@ -108,6 +136,7 @@ export async function createPlaylist(formData: FormData) {
 
   const destination = new URL("http://local.invalid/playlist")
   destination.searchParams.set("scope", scopeValue(scope))
+  if (era) destination.searchParams.set("era", String(era))
   if (created.url) destination.searchParams.set("created", created.url)
   destination.searchParams.set("tracks", String(created.trackCount))
   destination.searchParams.set("name", created.name)
@@ -132,7 +161,8 @@ async function reportPlaylist(input: {
 }
 
 function scopeKey(scope: Scope): string {
-  if (scope.kind === "all") return "all"
+  if (scope.kind === "all" || scope.kind === "english") return scope.kind
+  if (scope.kind === "region") return scope.regionId
   if (scope.kind === "postcode") return scope.postcode
   if (scope.kind === "area") return scope.placeId
   if (scope.kind === "venue") return scope.venueId

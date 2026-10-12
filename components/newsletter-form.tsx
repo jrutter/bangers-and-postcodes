@@ -4,13 +4,14 @@ import { usePathname } from "next/navigation"
 import { useActionState, useEffect, useRef } from "react"
 import { useFormStatus } from "react-dom"
 
+import { AreaChecklist } from "@/components/area-checklist"
 import { subscribeAction } from "@/app/newsletter/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { areasFromPathname } from "@/lib/newsletter/path"
 import type { SubscribeResult } from "@/lib/newsletter/flow"
 
-type AreaOption = { code: string; label: string }
+type AreaOption = { code: string; label: string; regionName?: string }
 
 export function NewsletterForm({
   placement,
@@ -100,23 +101,8 @@ function NewsletterFields({
         </div>
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Areas</legend>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {options.map((option) => (
-              <label key={option.code} className="flex items-start gap-2 rounded-lg bg-card px-3 py-2 text-sm ring-1 ring-border">
-                <input
-                  type="checkbox"
-                  name="areas"
-                  value={option.code}
-                  defaultChecked={defaults.includes(option.code)}
-                  className="mt-1 size-4 accent-primary"
-                />
-                <span>
-                  <span className="font-medium">{option.code}</span>
-                  <span className="block text-muted-foreground">{option.label}</span>
-                </span>
-              </label>
-            ))}
-          </div>
+          <p className="text-sm text-muted-foreground">Every London district, grouped by region. Pick up to 12.</p>
+          <AreaChecklist options={options} defaults={defaults} />
         </fieldset>
         <label className="flex items-start gap-2 text-sm leading-6">
           <input type="checkbox" name="consent" value="yes" required className="mt-1 size-4 accent-primary" />

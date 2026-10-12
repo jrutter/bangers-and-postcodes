@@ -119,7 +119,24 @@ export function createSpotify(options?: { fetch?: FetchLike; env?: SpotifyEnv })
       return matched
     },
     async matchCatalogue(artists: ArtistRecord[]): Promise<MatchedArtist[]> {
-      return mapPool(artists, 6, (artist) => this.matchArtist(artist))
+      return mapPool(artists, 4, (artist) => this.matchArtist(artist))
+    },
+    /** One top track per known Spotify artist id. Skips artists with no track. */
+    async tracksForArtists(ids: string[]): Promise<string[]> {
+      const unique = [...new Set(ids.filter(Boolean))].slice(0, 50)
+      const uris = await mapPool(unique, 4, async (id) => {
+        try {
+          const payload = await apiSend(fetchImpl, "GET", `/artists/${encodeURIComponent(id)}/top-tracks`, {
+            token: await this.accessToken(),
+            params: { market: "GB" },
+          })
+          const tracks = Array.isArray(payload.tracks) ? payload.tracks : []
+          return chooseTrack(tracks as Parameters<typeof chooseTrack>[0])?.uri || null
+        } catch {
+          return null
+        }
+      })
+      return uris.filter((uri): uri is string => Boolean(uri))
     },
     /**
      * Gig bills. The catalogue path stays an exact quoted search.

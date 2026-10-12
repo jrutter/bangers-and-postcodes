@@ -11,7 +11,7 @@ import { loadTasteSession, tasteAccess } from "@/lib/taste-session"
 
 export const metadata: Metadata = {
   title: "Gigs",
-  description: "Upcoming gigs in southwest London, with Spotify links for the artists on the bill.",
+  description: "Gigs this week in southwest London, the part of town the live search covers, with Spotify links for the artists on the bill.",
 }
 
 export const maxDuration = 60
@@ -20,12 +20,12 @@ export default function GigsPage(props: PageProps<"/gigs">) {
   return (
     <div className="space-y-12">
       <header className="max-w-3xl space-y-4">
-        <p className="text-sm font-medium tracking-[0.16em] text-info uppercase">Southwest London</p>
+        <p className="text-sm font-medium tracking-[0.16em] text-info uppercase">This week</p>
         <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-5xl">Gigs</h1>
         <p className="text-base leading-7 text-muted-foreground">
-          Upcoming shows around Barnes, Putney, Richmond, Kingston, Wimbledon, Mortlake, Fulham, and Wandsworth, plus
-          Twickenham and Balham rooms that sit in those boroughs. Touring artists are included. Nothing here is filled
-          in when the listing feeds are off.
+          Upcoming shows a visitor can reach in southwest London: Barnes, Putney, Richmond, Kingston, Wimbledon, Fulham,
+          Wandsworth, Twickenham, and Balham. The search stays inside about 8 miles of those rooms. Other parts of
+          London list their venues on the region pages, and a bill appears there when a listing matches the room.
         </p>
       </header>
       <Suspense fallback={<p className="text-sm text-muted-foreground">Checking gig listings…</p>}>
