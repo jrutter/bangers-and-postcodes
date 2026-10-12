@@ -15,7 +15,10 @@ import {
   scopeLabel,
   scopeValue,
 } from "@/lib/catalogue"
-import { venues } from "@/lib/venues"
+import { eraLabel, filterArtists, parseEra, PLAYLIST_TRACK_CAP, withEra } from "@/lib/era"
+import { cataloguePostcodes, coveredPostcodes } from "@/lib/geo"
+import { regions } from "@/lib/regions"
+import { groupVenues, venues } from "@/lib/venues"
 import { openSpotifyPlaylist } from "@/lib/format"
 import { hasSpotifySession } from "@/lib/session"
 import { describeSpotifyFailure, spotifyClient } from "@/lib/spotify"
@@ -63,10 +66,11 @@ export async function PlaylistPanel({
   const created = openSpotifyPlaylist(first(query.created))
   const tracks = first(query.tracks)
   const playlistTitle = first(query.name)
+  const era = parseEra(first(query.era))
   const gigScope = isGigScope(scope)
   const englishScope = scope.kind === "english"
-  const artistCount = gigScope || englishScope ? 0 : artistsForScope(scope).length
-  const returnTo = `/playlist?scope=${encodeURIComponent(scopeValue(scope))}`
+  const artistCount = gigScope || englishScope ? 0 : filterArtists(artistsForScope(scope), era).length
+  const returnTo = withEra(`/playlist?scope=${encodeURIComponent(scopeValue(scope))}`, era)
 
   return (
     <div className="max-w-xl space-y-6">
@@ -114,8 +118,15 @@ export async function PlaylistPanel({
             data-analytics-filter="playlist_scope"
             className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none"
           >
-            <option value="all">All of southwest London</option>
+            <option value="all">All of London</option>
             <option value="english">Your English favourites</option>
+            <optgroup label="Regions">
+              {regions().map((region) => (
+                <option key={region.id} value={`region:${region.id}`}>
+                  {region.name}
+                </option>
+              ))}
+            </optgroup>
             <optgroup label="Postcodes">
               {postcodes().map((postcode) => (
                 <option key={postcode} value={`postcode:${postcode}`}>
@@ -132,32 +143,43 @@ export async function PlaylistPanel({
             </optgroup>
             <optgroup label="This week's gigs">
               <option value="week:all">This week across southwest London</option>
-              {postcodes().map((postcode) => (
+              {cataloguePostcodes().map((postcode) => (
                 <option key={`week-${postcode}`} value={`week:${postcode}`}>
                   This week near {postcode}
                 </option>
               ))}
-              {places().map((place) => (
+              {places()
+                .filter(
+                  (place) =>
+                    place.postcodes.some((code) => coveredPostcodes().includes(code)) ||
+                    place.id === "richmond-borough" ||
+                    place.id === "wandsworth-borough" ||
+                    place.id === "kingston-borough",
+                )
+                .map((place) => (
                 <option key={`week-${place.id}`} value={`week:${place.id}`}>
                   This week around {place.name}
                 </option>
               ))}
             </optgroup>
-            <optgroup label="Venues">
-              {venues().map((venue) => (
-                <option key={venue.id} value={`venue:${venue.id}`}>
-                  Who is playing at {venue.name}
-                </option>
-              ))}
-            </optgroup>
+            {groupVenues(venues()).map((group) => (
+              <optgroup key={group.borough} label={`Venues · ${group.borough}`}>
+                {group.districts.flatMap((district) => district.venues).map((venue) => (
+                  <option key={venue.id} value={`venue:${venue.id}`}>
+                    Who is playing at {venue.name}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
           </select>
           <p className="text-sm text-muted-foreground">
             {englishScope
               ? "Artists from England among your Spotify top artists and follows. The check runs when you create the playlist, using Wikidata and MusicBrainz."
               : gigScope
-                ? `Artists are whoever is billed ${gigScopePhrase(scope)}. Spotify matching runs when you create the playlist.`
-                : `${artistCount} ${artistCount === 1 ? "artist" : "artists"} in the catalogue for ${scopeLabel(scope)}. Spotify matching runs when you create the playlist.`}
+                ? `Artists are whoever is billed ${gigScopePhrase(scope)}. Spotify matching runs when you create the playlist, up to ${PLAYLIST_TRACK_CAP} tracks.`
+                : `${artistCount} ${artistCount === 1 ? "artist" : "artists"} in the catalogue for ${scopeLabel(scope)}${era ? ` (${eraLabel(era)})` : ""}. The playlist keeps the top ${PLAYLIST_TRACK_CAP} tracks after a capped Spotify lookup.`}
           </p>
+          {era ? <input type="hidden" name="era" value={era} /> : null}
         </div>
         <div className="space-y-2">
           <label htmlFor="name" className="text-sm font-medium">

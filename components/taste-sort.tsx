@@ -1,16 +1,34 @@
 import Link from "next/link"
 
-export function TasteSort({ pathname, sort }: { pathname: string; sort: "date" | "for-you" }) {
+export function TasteSort({
+  pathname,
+  sort,
+  query,
+}: {
+  pathname: string
+  sort: "date" | "for-you"
+  query?: Record<string, string | undefined>
+}) {
   return (
     <p className="flex flex-wrap gap-3 text-sm">
-      <SortLink href={pathname} active={sort === "date"} filter="date">
+      <SortLink href={withSort(pathname, query, null)} active={sort === "date"} filter="date">
         Date
       </SortLink>
-      <SortLink href={`${pathname}?sort=for-you`} active={sort === "for-you"} filter="for-you">
+      <SortLink href={withSort(pathname, query, "for-you")} active={sort === "for-you"} filter="for-you">
         For you
       </SortLink>
     </p>
   )
+}
+
+function withSort(pathname: string, query: Record<string, string | undefined> | undefined, sort: string | null): string {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(query ?? {})) {
+    if (value) params.set(key, value)
+  }
+  if (sort) params.set("sort", sort)
+  const text = params.toString()
+  return text ? `${pathname}?${text}` : pathname
 }
 
 function SortLink({ href, active, filter, children }: { href: string; active: boolean; filter: string; children: string }) {

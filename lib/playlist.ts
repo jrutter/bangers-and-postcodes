@@ -47,10 +47,7 @@ export function playlistName(label: string, custom?: string): string {
 }
 
 export function playlistDescription(label: string): string {
-  return `Artists linked to ${label}. Built by Bangers & Postcodes from public locality data, Barnes to Wimbledon.`.slice(
-    0,
-    300,
-  )
+  return `Artists linked to ${label}. Built by Bangers & Postcodes from public locality data across London.`.slice(0, 300)
 }
 
 export function englishPlaylistDescription(): string {

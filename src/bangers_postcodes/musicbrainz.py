@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import sys
 import time
+from pathlib import Path
 from typing import Callable
 
 import httpx
 
 USER_AGENT = (
-    "BangersAndPostcodes/0.1 "
-    "(southwest London artist discovery; contact: bangers-postcodes@example.com)"
+    "BangersAndPostcodes/0.2 "
+    "(London artist discovery; contact: bangers-postcodes@example.com)"
 )
 API_ROOT = "https://musicbrainz.org/ws/2"
 
@@ -57,6 +60,7 @@ class MusicBrainzClient:
         sleeper: Callable[[float], None] = time.sleep,
         now: Callable[[], float] = time.monotonic,
         max_retries: int = 8,
+        cache_dir: Path | None = None,
     ) -> None:
         self._http = http or httpx.Client(
             timeout=40.0,
@@ -68,6 +72,7 @@ class MusicBrainzClient:
         self._now = now
         self._next_at = 0.0
         self.max_retries = max_retries
+        self.cache_dir = cache_dir
 
     def close(self) -> None:
         if self._owns_http:
@@ -75,6 +80,9 @@ class MusicBrainzClient:
 
     def get(self, path: str, params: dict | None = None) -> dict:
         url = path if path.startswith("http") else f"{API_ROOT}{path}"
+        cached = self._read_cache(url, params)
+        if cached is not None:
+            return cached
         last_error: Exception | None = None
         for attempt in range(self.max_retries):
             self._wait()
@@ -103,8 +111,29 @@ class MusicBrainzClient:
                 last_error = MusicBrainzError(str(payload.get("error")))
                 self._sleeper(min(30.0, 3.0 * (attempt + 1)))
                 continue
+            self._write_cache(url, params, payload)
             return payload
         raise MusicBrainzError(f"MusicBrainz request failed: {last_error}")
+
+    def _cache_path(self, url: str, params: dict | None) -> Path | None:
+        if self.cache_dir is None:
+            return None
+        key = hashlib.sha1(json.dumps({"url": url, "params": params or {}}, sort_keys=True).encode()).hexdigest()
+        return self.cache_dir / key
+
+    def _read_cache(self, url: str, params: dict | None) -> dict | None:
+        path = self._cache_path(url, params)
+        if path is None or not path.exists():
+            return None
+        payload = json.loads(path.read_text())
+        return payload if isinstance(payload, dict) else None
+
+    def _write_cache(self, url: str, params: dict | None, payload: dict) -> None:
+        path = self._cache_path(url, params)
+        if path is None:
+            return
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload))
 
     def search_artists(self, query: str) -> list[dict]:
         return self._search(query, depth=0)

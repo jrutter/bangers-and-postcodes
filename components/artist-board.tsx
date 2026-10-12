@@ -8,6 +8,7 @@ import { claimLabel, metricText, safePreviewUrl, safeSpotifyImage, spotifyTrackU
 import { formatGigWhen, gigsForArtist } from "@/lib/gigs/select"
 import type { TaggedGig } from "@/lib/gigs/types"
 import { venuePath } from "@/lib/venues"
+import { eraText } from "@/lib/era"
 import { summarize } from "@/lib/stats"
 import type { MatchedArtist } from "@/lib/types"
 
@@ -19,14 +20,20 @@ export function ArtistBoard({
   message,
   emptyNote,
   gigs = [],
+  total,
+  showcase = [],
+  pageNote,
 }: {
   artists: MatchedArtist[]
   status: BoardStatus
   message?: string
   emptyNote?: string
   gigs?: TaggedGig[]
+  total?: number
+  showcase?: MatchedArtist[]
+  pageNote?: string
 }) {
-  if (artists.length === 0) {
+  if (artists.length === 0 && showcase.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -61,9 +68,9 @@ export function ArtistBoard({
       ) : null}
 
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Artists from here" value={String(summary.artistCount)} />
+        <Stat label="Artists from here" value={String(total ?? summary.artistCount)} />
         <Stat
-          label="Spotify matches"
+          label="Spotify matches on this page"
           value={spotifyReady ? String(summary.spotifyMatched) : status === "loading" ? "…" : "n/a"}
         />
         <Stat
@@ -75,6 +82,21 @@ export function ArtistBoard({
           value={spotifyReady ? String(summary.withFollowers) : status === "loading" ? "…" : "n/a"}
         />
       </dl>
+
+      {pageNote ? <p className="text-sm text-muted-foreground">{pageNote}</p> : null}
+      {showcase.length > 0 ? (
+        <section className="space-y-3">
+          <h2 className="font-heading text-2xl font-semibold tracking-tight">Legends and artists active now</h2>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {showcase.map((artist) => (
+              <li key={`show-${artist.mbid ?? artist.name}`} className="rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10">
+                <p className="font-medium">{artist.name}</p>
+                <p className="text-sm text-muted-foreground">{eraText(artist) ?? "Dates not recorded"}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {spotifyReady && summary.top.length > 0 ? (
         <section className="space-y-3">
@@ -147,6 +169,7 @@ function ArtistCard({ artist, showSpotify, gigs }: { artist: MatchedArtist; show
               </Badge>
             ))}
           </div>
+          {eraText(artist) ? <p className="text-sm text-muted-foreground">{eraText(artist)}</p> : null}
           {artist.disambiguation ? <p className="text-sm text-muted-foreground">{artist.disambiguation}</p> : null}
         </div>
         </div>

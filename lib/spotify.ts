@@ -118,7 +118,7 @@ export function createSpotify(options?: { fetch?: FetchLike; env?: SpotifyEnv })
       return matched
     },
     async matchCatalogue(artists: ArtistRecord[]): Promise<MatchedArtist[]> {
-      return mapPool(artists, 6, (artist) => this.matchArtist(artist))
+      return mapPool(artists, 4, (artist) => this.matchArtist(artist))
     },
     /** One top track per known Spotify artist id. Skips artists with no track. */
     async tracksForArtists(ids: string[]): Promise<string[]> {

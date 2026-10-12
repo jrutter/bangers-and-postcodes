@@ -1,10 +1,10 @@
 # Bangers & Postcodes
 
-The best new music from your ends. Pick a London postcode and get a Spotify playlist of artists from right round the corner, plus stats on who's local, who's growing, and which part of town is turning out the tunes. Starting in southwest London, from Barnes to Wimbledon.
+The best music from London's postcodes, old and new. Pick a region, then a district, and get a Spotify playlist of artists from that part of town, plus the venues and how to get there. Coverage is Greater London: the inner postcodes and the outer districts that fall inside a London borough, across all 32 boroughs and the City of London. The audience is visitors as well as locals.
 
-Spotify does not know where an artist is from. A Python script decides who counts as local from MusicBrainz and Wikidata, records the source of each claim, and writes `data/artists.json`. The Next.js app reads that file. It matches artists on Spotify from the server, and a logged-in listener can save a playlist to their account.
+Spotify does not know where an artist is from. A Python script decides who counts as local from MusicBrainz and Wikidata, records the source of each claim and the years the artist was active, and writes `data/artists.json`. The Next.js app reads that file. It matches a page of artists on Spotify from the server, and a logged-in listener can save a playlist to their account.
 
-Places in v1: Barnes (SW13), Putney and Roehampton (SW15), Richmond, Kew (TW9), Ham and Petersham (TW10), Kingston upon Thames and Norbiton (KT1/KT2), Wimbledon (SW19), Mortlake and East Sheen (SW14), Fulham (SW6), Southfields (SW18). Borough-level links for Wandsworth, Kingston upon Thames, and Richmond upon Thames are kept separate, because those areas are wider than one postcode.
+Neighbourhoods come from Wikidata items that have a MusicBrainz area id inside a London borough. The hand-checked southwest places (Barnes, Putney, Richmond, Kew, and the rest) keep their ids and postcodes. Borough-level links, including the City of London, have no postcode of their own, because those areas are wider than one district.
 
 ## Web app
 
@@ -46,13 +46,14 @@ The Spotify app is in development mode. Until a quota extension is approved, oth
 
 Pages:
 
-- `/` lists the southwest London postcodes and areas, with catalogue counts, plus venues and this week's gigs when a listings key is set. Logged-in listeners also get a For you section and a short list of their English favourites.
+- `/` leads with a region picker and the London map. Inner regions are the compass postcodes (EC and WC together as Central). Outer regions group EN, HA, UB, TW, KT, CR, SM, BR, DA, IG, and RM by direction. Logged-in listeners also get a For you section, a short list of their English favourites, and this week's gigs when a listings key is set.
 - `/favourites` is Your English favourites. For a logged-in listener it keeps Spotify top artists (about 4 weeks, 6 months, and several years, 50 each) and up to 100 followed artists when Wikidata or MusicBrainz places them in England. Country code GB is not enough. Each row shows the picture, the town, why they are on the list, the origin source, an Open in Spotify link, and a link to a postcode or area when that place is already in this catalogue. Origin unknown and artists not checked yet stay collapsed. A visit spends about 12 seconds on MusicBrainz, then asks for a refresh to continue. Lookups are cached. The playlist form's "Your English favourites" option builds one track per artist, up to 50, through the usual Spotify playlist flow.
-- `/postcode/sw15` and `/area/putney` list local artists, the source of each locality claim, Spotify matches, and stats. Followers and popularity show as n/a when Spotify omits them. They also list local gigs near that postcode, including touring artists, and a playlist of who is billed in the next 7 days. For you ranks that page's artists and upcoming gigs.
-- `/map` draws the covered postcode districts and a pin for each venue. A district opens its artist count, local artists, upcoming gigs, and the existing postcode playlist. A venue opens its address, upcoming gigs, and the venue playlist. Logged-in taste highlights matching districts and pins in red.
-- `/gigs` is this week, then later shows, across the covered postcodes. `?sort=for-you` reorders by the listener's taste. Logged-out visitors keep date order and see a login prompt.
-- `/venues` and `/venue/half-moon` are the curated rooms. A venue page lists upcoming gigs attached to that room and can build a playlist of who's playing there. `/venues?sort=for-you` puts rooms with a matching upcoming bill first.
-- `/playlist` is where you log in with Spotify and create the playlist. The same form covers a postcode, this week's gigs, a venue, or your English favourites.
+- `/region/southwest` is the middle level: a visitor intro, what the postcode areas are known for, how to get there, the map zoomed to that region, its districts, a mix of older and current artists, venues, this week's gigs when the southwest search reaches them, and a region playlist.
+- `/postcode/sw15` and `/area/putney` are the district and neighbourhood pages: artists, the source of each locality claim, venues, and the years they were active. An era filter (a decade, before the 1950s, or active now) applies to the list and to the playlist. Long lists are paged. Spotify matches and stats load for the visible page, and are cached. Followers and popularity show as n/a when Spotify omits them. The page also lists local gigs near that postcode, including touring artists, and a playlist of who is billed in the next 7 days. For you ranks that page's artists and upcoming gigs.
+- `/map` draws every Greater London postcode district and a pin for every music venue. Pins cluster until you zoom in. The first tap on a district zooms to its region; the next tap opens artists, venues, and the playlist. A venue pin opens its address, upcoming gigs, and the venue playlist. Logged-in taste highlights matching districts and pins.
+- `/gigs` is this week, then later shows, across the southwest search. `?sort=for-you` reorders by the listener's taste. Logged-out visitors keep date order and see a login prompt.
+- `/venues` and `/venue/half-moon` list music venues across Greater London, grouped by borough and postcode, with search, area, and type filters. A region id works as the area filter. A venue page lists upcoming gigs the southwest feed attaches to that room, and can build a playlist of who's playing there. `/venues?sort=for-you` puts rooms with a matching upcoming bill first. The hand-checked southwest rooms keep their pages. Gig search itself stays an 8 mile radius of southwest London, so a room in the east often has an empty bill until a listing is filed against it.
+- `/playlist` is where you log in with Spotify and create the playlist. The same form covers a region, a postcode, this week's gigs, a venue, or your English favourites. The weekly email lists every district, grouped by region.
 
 Artist search and track lookup use the client-credentials flow and stay on the server. The client secret is never sent to the browser. Without credentials, the artist lists still render and Spotify fields stay empty.
 
@@ -124,8 +125,12 @@ Python 3.11 or newer. This is only needed to refresh the artist list. The commit
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
+bangers places
+bangers venues
 bangers discover --output data/artists.json
 ```
+
+`bangers places` rebuilds `data/places.json`, `data/london-districts.json`, and `data/postcode-districts.json`. `bangers venues` rebuilds `data/venues.json`. MusicBrainz is limited to one request a second. Responses are cached under `data/.mb-cache/`, which is gitignored. `bangers discover` searches each MusicBrainz area name, keeps a hit only when the area id is in the gazetteer, merges Wikidata place-of-birth and location-of-formation claims, and dedupes the same artist when two records share a Wikidata id or the same name, type, and place.
 
 ## Tests
 
@@ -141,7 +146,7 @@ Spotify tests mock `fetch`. They do not use live credentials. Pytest covers Musi
 
 An artist is local when at least one of these is true:
 
-- MusicBrainz **area** or **begin area** is one of the area IDs in `src/bangers_postcodes/areas.py`. The name is not enough. "Richmond", "Barnes", "Kew", and "Wimbledon" all exist outside London, and those other areas are rejected.
+- MusicBrainz **area** or **begin area** is one of the area IDs in `data/places.json` (the curated southwest places in `src/bangers_postcodes/areas.py` are the fallback). The name is not enough. "Richmond", "Barnes", "Kew", and "Wimbledon" all exist outside London, and those other areas are rejected.
 - Wikidata **place of birth** (P19) or **location of formation** (P740) is one of the Wikidata items for the same places.
 
 Each artist record stores every claim, including the source, the field, and the area id or Wikidata id. People linked only at borough level are flagged `precision: "borough"` and are not counted inside a single postcode.
@@ -155,9 +160,12 @@ Spotify matching keeps an artist only when the Spotify name matches after case, 
 - `app/` — Next.js App Router pages and Spotify login routes
 - `lib/` — catalogue, matching, stats, and playlist rules
 - `lib/gigs/` — gig provider interface, Skiddle, Ticketmaster, and the southwest filter
-- `lib/venues.ts` — curated rooms (addresses and postcodes, not gig dates)
+- `lib/venues.ts` — London music venues. `bangers venues` rebuilds `data/venues.json` from the GLA Cultural Infrastructure Map (Open Government Licence) and OpenStreetMap (ODbL). Skiddle venues are included when `SKIDDLE_API_KEY` is set.
+- `lib/era.ts` — decade filter, paging, and the playlist sample cap
 - `data/artists.json` — committed discovery output
-- `src/bangers_postcodes/` — MusicBrainz and Wikidata discovery
+- `data/places.json` — London neighbourhoods and boroughs
+- `data/postcode-districts.json` — district polygons drawn on the map
+- `src/bangers_postcodes/` — MusicBrainz and Wikidata discovery, plus the London gazetteer build
 
 ## Limitations
 
@@ -165,16 +173,19 @@ Spotify matching keeps an artist only when the Spotify name matches after case, 
 - MusicBrainz has no London area for Kew, Ham, Petersham, East Sheen, Roehampton, or Norbiton. Those places come from Wikidata only.
 - The MusicBrainz areas named Wandsworth, Kingston upon Thames (the subdivision), and Richmond upon Thames are boroughs. Artists tagged there might be from Battersea, Surbiton, Twickenham, and so on. They are listed under the borough, not forced into SW18, KT1, or TW9.
 - Hammersmith and Fulham as a borough is not treated as Fulham SW6.
-- The same person can appear more than once when MusicBrainz has several artist records (Four Tet and Kieran Hebden, for example). Playlist creation keeps one track per Spotify artist. Aliases with no letters in the name are skipped.
+- The same person can appear more than once when MusicBrainz has several artist records under different names (Four Tet and Kieran Hebden, for example). Records that share a Wikidata id, or the same name and type in the same place, are merged. When they share a Wikidata id, the kept name is the Wikidata label, then the record with the music tags, so an imprint-style alias such as "4T Recordings" does not replace Four Tet. Playlist creation keeps one track per Spotify artist. Aliases with no letters in the name are skipped.
 - A MusicBrainz comment that calls someone an author, actor, poet, or similar keeps them out, unless that comment also describes them as a musician. Wikidata items with no English name are skipped.
 - Spotify has no hometown field, so a match is a name match, not a biography check.
 - For you uses top artists and tracks (about four weeks and about six months) and followed artists. If Spotify withholds genres or related artists, which newer apps often do, ranking falls back to those direct name matches and to artists credited on top tracks. Nothing is ranked for a logged-out visitor.
 - Listeners who logged in before `user-top-read` was requested still have a working playlist session. They need to log in again before For you can read their taste.
-- The map uses [MapLibre GL](https://maplibre.org/) (BSD-3-Clause) and [OpenFreeMap](https://openfreemap.org/) vector tiles, which need no API key. The tiles are OpenStreetMap data under the [Open Database Licence](https://www.openstreetmap.org/copyright). Postcode district shapes are the Wikipedia KML polygons republished by [uk-postcode-polygons](https://github.com/missinglink/uk-postcode-polygons), © Wikipedia contributors, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Centroids used elsewhere in the app are from postcodes.io under the Open Government Licence. Twickenham (TW1) and Balham (SW12) are drawn because venues sit there; they are not artist-catalogue postcodes, so they have no area playlist.
+- The map uses [MapLibre GL](https://maplibre.org/) (BSD-3-Clause) and [OpenFreeMap](https://openfreemap.org/) vector tiles, which need no API key. The tiles are OpenStreetMap data under the [Open Database Licence](https://www.openstreetmap.org/copyright). Postcode district shapes are the Wikipedia KML polygons republished by [uk-postcode-polygons](https://github.com/missinglink/uk-postcode-polygons), © Wikipedia contributors, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). A district is drawn when the centre of its outer ring sits inside a London borough, or at least 55% of a sample of its vertices do. That check uses ONS generalised local-authority boundaries (Open Government Licence) and the boundary file is not shipped. No WD district meets that test, so WD is absent. Centroids for the original southwest set and for venue fallbacks come from postcodes.io under the Open Government Licence.
+- An artist matches a decade when their recorded span overlaps it. An open end runs through the current year, so a band that started in 1968 and has not ended appears in every decade since, and in Active now. Active now needs dates, and it excludes anyone whose span ended before this year. Unknown dates are not Active now.
+- Area playlists sample at most 60 catalogue artists, spread across start decades, then keep the top 50 tracks. Spotify matches for a page are cached for about a week.
 - Popularity and follower counts depend on what the Spotify app is allowed to see.
-- Creating a playlist for all of southwest London matches the whole catalogue on Spotify in that request, so it can take a while.
-- Gig dates are only shown when Skiddle or Ticketmaster return them. There is no checked-in sample calendar.
+- A playlist for all of London still only matches that sample, not every artist in the catalogue.
+- Gig search stays an 8 mile radius of the original southwest catalogue. Venue pages outside that radius still exist; their gig list fills when a listing matches the room. The ten hand-checked southwest rooms keep their ids. Pryzm Kingston (154 Clarence Street, KT1 1QP) closed in July 2025 and is left out of the venue file. Gig dates are only shown when Skiddle or Ticketmaster return them. There is no checked-in sample calendar.
+- Venue rows come from the GLA Cultural Infrastructure Map 2024 music, grassroots, and nightclub files (Open Government Licence) and from OpenStreetMap (ODbL). The 2026 Cultural Infrastructure workbook is studios and production space, so it is not a performance-venue source. Skiddle's venue endpoint is called only when `SKIDDLE_API_KEY` is set. Capacity is rarely published. A point that falls just outside a simplified borough outline is assigned to the nearest district within 0.8 miles. Outer boroughs are sparse because the GLA music audit does not list a room in every borough; OpenStreetMap fills the gaps it has tagged.
 - Pryzm Kingston (154 Clarence Street, KT1 1QP) closed in July 2025. A current Hippodrome music room in Kingston could not be verified, so neither is in the venue list. The Fighting Cocks, Banquet Records, and the other rooms on `/venues` are.
 - Songkick's public API is no longer available. Bandsintown's API is aimed at a single artist, or at partners who write to API@bandsintown.com, and it does not search by venue, so it is not wired up. A new provider is a `GigProvider` added to `gigProviders` in `lib/gigs/providers.ts`.
 - Ticketmaster Discovery can be thin for UK pub bills. Skiddle is the practical source for those. Club and live event codes are both requested. Theatre listings are left out unless a feed files them as music.
-- TW1 (Twickenham) and SW12 (Balham) are outside the artist-catalogue postcodes. They are included so Eel Pie Club, The Exchange, and The Bedford have a page. They show on the borough pages, not on TW9 or SW18.
+- TW1 (Twickenham) and SW12 (Balham) are on the map with the other Greater London districts. The southwest venue pages for Eel Pie Club, The Exchange, and The Bedford still use them.
