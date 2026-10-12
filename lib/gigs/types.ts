@@ -5,6 +5,8 @@ export type Gig = {
   provider: GigProviderId
   title: string
   artistNames: string[]
+  /** Spotify artist ids from the listing, keyed by the act name they belong to. */
+  artistSpotifyIds?: Record<string, string>
   venueName: string
   address: string | null
   town: string | null

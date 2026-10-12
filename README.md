@@ -49,7 +49,7 @@ Pages:
 - `/` lists the southwest London postcodes and areas, with catalogue counts, plus venues and this week's gigs when a listings key is set. Logged-in listeners also get a For you section.
 - `/postcode/sw15` and `/area/putney` list local artists, the source of each locality claim, Spotify matches, and stats. Followers and popularity show as n/a when Spotify omits them. They also list local gigs near that postcode, including touring artists, and a playlist of who is billed in the next 7 days. For you ranks that page's artists and upcoming gigs.
 - `/map` draws the covered postcode districts and a pin for each venue. A district opens its artist count, local artists, upcoming gigs, and the existing postcode playlist. A venue opens its address, upcoming gigs, and the venue playlist. Logged-in taste highlights matching districts and pins in red.
-- `/gigs` is this week, then later shows, across the covered postcodes. `?sort=for-you` reorders by the listener's taste. Logged-out visitors keep date order and see a login prompt.
+- `/gigs` is this week, then later shows, across the covered postcodes. Act names are matched to Spotify from the bill, including featured artists, and a house night with no confident match stays labelled as no match. `?sort=for-you` reorders by the listener's taste. Logged-out visitors keep date order and see a login prompt.
 - `/venues` and `/venue/half-moon` are the curated rooms. A venue page lists upcoming gigs attached to that room and can build a playlist of who's playing there. `/venues?sort=for-you` puts rooms with a matching upcoming bill first.
 - `/playlist` is where you log in with Spotify and create the playlist. The same form covers a postcode, this week's gigs, or a venue.
 
@@ -147,7 +147,7 @@ Each artist record stores every claim, including the source, the field, and the 
 
 Musical artists are MusicBrainz groups, or people with a music tag, a music disambiguation, or an album, single, or EP. Wikidata-only names need a specific role (singer, rapper, composer, and so on). A bare "musician" occupation is ignored, because Wikidata applies it to actors and novelists.
 
-Spotify matching keeps an artist only when the Spotify name matches after case, punctuation, and a leading "The" are ignored. Followers and popularity are copied when the API sends them and left null when it does not. Newer Spotify apps often omit those fields. The representative track is the top track in the GB market, or a track search if top tracks are missing.
+Catalogue Spotify matching keeps an artist only when the Spotify name matches after case, punctuation, and a leading "The" are ignored. Gig bills are handled separately: Skiddle artist names are used when the listing sends them, then the bill is split on separators such as `feat.`, `&`, and ` - `. Each candidate is compared with case, accents, apostrophes, and a leading "The" folded away, and a Spotify artist is kept only above a confidence threshold. A venue house night that still does not match keeps the "no match" note. Followers and popularity are copied when the API sends them and left null when it does not. Newer Spotify apps often omit those fields. The representative track is the top track in the GB market, or a track search if top tracks are missing.
 
 ## Layout
 

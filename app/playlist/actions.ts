@@ -7,6 +7,7 @@ import { artistsForScope, gigScopePhrase, isGigScope, parseScope, scopeLabel, sc
 import { loadRegionalGigs } from "@/lib/gigs/cache"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
 import { artistRecordsForGigs, selectGigs, selectionForScope } from "@/lib/gigs/select"
+import { spotifyIdHints } from "@/lib/gigs/spotify"
 import { gigPlaylistDescription, playlistDescription, playlistName, trackUris } from "@/lib/playlist"
 import { captureServerIfAllowed } from "@/lib/posthog-server"
 import { getUserToken } from "@/lib/session"
@@ -41,11 +42,15 @@ export async function createPlaylist(formData: FormData) {
   let failure: "tracks" | "spotify" | "gigs" | "gig-keys" | "unknown" | null = null
   let spotifyFailure: SpotifyError | null = null
   try {
-    const loaded = isGigScope(scope) ? await artistsFromGigs(scope) : { artists: artistsForScope(scope), failure: null }
+    const loaded = isGigScope(scope)
+      ? await artistsFromGigs(scope)
+      : { artists: artistsForScope(scope), failure: null, hints: undefined }
     if (loaded.failure) {
       failure = loaded.failure
     } else {
-      const matched = await client.matchCatalogue(loaded.artists)
+      const matched = isGigScope(scope)
+        ? await client.matchGigLineup(loaded.artists, loaded.hints)
+        : await client.matchCatalogue(loaded.artists)
       const uris = trackUris(matched)
       if (uris.length === 0) {
         failure = "tracks"
@@ -139,6 +144,7 @@ function scopeKey(scope: Scope): string {
 async function artistsFromGigs(scope: Parameters<typeof selectionForScope>[0]): Promise<{
   artists: ArtistRecord[]
   failure: "gigs" | "gig-keys" | null
+  hints?: ReadonlyMap<string, string>
 }> {
   const feed = await loadRegionalGigs(gigProviderFingerprint())
   if (!feed.providers.some((provider) => provider.configured)) {
@@ -148,7 +154,7 @@ async function artistsFromGigs(scope: Parameters<typeof selectionForScope>[0]): 
   const gigs = selectGigs(feed.gigs, chosen.selection, chosen.span, new Date())
   const artists = artistRecordsForGigs(gigs)
   if (artists.length === 0) return { artists: [], failure: "gigs" }
-  return { artists, failure: null }
+  return { artists, hints: spotifyIdHints(gigs), failure: null }
 }
 
 function withQuery(path: string, key: string, value: string): string {

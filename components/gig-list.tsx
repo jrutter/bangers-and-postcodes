@@ -3,7 +3,7 @@ import Link from "next/link"
 import { SpotifyLinks } from "@/components/spotify-links"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatGigWhen } from "@/lib/gigs/select"
-import { lookupLinks, type SpotifyLinkMap } from "@/lib/gigs/spotify"
+import { gigActRows, type SpotifyLinkMap } from "@/lib/gigs/spotify"
 import type { TaggedGig } from "@/lib/gigs/types"
 import { venuePath } from "@/lib/venues"
 
@@ -28,7 +28,9 @@ export function GigList({
 }
 
 function GigCard({ gig, links, reason }: { gig: TaggedGig; links: SpotifyLinkMap; reason?: string }) {
-  const names = gig.artistNames.length > 0 ? gig.artistNames : [gig.title]
+  const source = gig.artistNames.length > 0 ? gig.artistNames : [gig.title]
+  const rows = source.flatMap((name) => gigActRows(name, links))
+  const names = rows.map((row) => row.name)
   const title = names.join(", ")
   const showEventName = gig.title && gig.title !== title && gig.title !== gig.venueName
   return (
@@ -72,20 +74,17 @@ function GigCard({ gig, links, reason }: { gig: TaggedGig; links: SpotifyLinkMap
           <p className="text-sm text-muted-foreground">No ticket link on this listing.</p>
         )}
         <ul className="space-y-3">
-          {names.map((name) => {
-            const match = lookupLinks(links, name)
-            return (
-              <li key={`${gig.id}-${name}`}>
-                {match ? (
-                  <SpotifyLinks links={match} />
-                ) : match === null ? (
-                  <p className="text-sm text-muted-foreground">No exact Spotify name match for {name}.</p>
-                ) : (
-                  <p className="text-sm">{name}</p>
-                )}
-              </li>
-            )
-          })}
+          {rows.map((row) => (
+            <li key={`${gig.id}-${row.name}`}>
+              {row.match ? (
+                <SpotifyLinks links={row.match} />
+              ) : row.match === null ? (
+                <p className="text-sm text-muted-foreground">No exact Spotify name match for {row.name}.</p>
+              ) : (
+                <p className="text-sm">{row.name}</p>
+              )}
+            </li>
+          ))}
         </ul>
       </CardContent>
     </Card>
