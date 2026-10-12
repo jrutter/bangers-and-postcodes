@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Suspense } from "react"
 
+import { EnglishFavourites } from "@/components/english-favourites"
 import { ForYou } from "@/components/for-you"
 import { GigSection } from "@/components/gig-section"
 import { LondonMap } from "@/components/london-map"
@@ -61,6 +62,10 @@ export default function HomePage() {
 
       <Suspense fallback={<p className="text-sm text-muted-foreground">Checking your Spotify taste…</p>}>
         <ForYou artists={artists()} selection={{ kind: "southwest" }} returnTo="/" />
+      </Suspense>
+
+      <Suspense fallback={<p className="text-sm text-muted-foreground">Checking which of your artists are from England…</p>}>
+        <EnglishFavourites variant="teaser" returnTo="/" />
       </Suspense>
 
       <Suspense fallback={<p className="text-sm text-muted-foreground">Checking listings for this week…</p>}>

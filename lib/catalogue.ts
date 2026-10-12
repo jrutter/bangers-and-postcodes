@@ -70,6 +70,7 @@ export function homePrecision() {
 
 export type Scope =
   | { kind: "all" }
+  | { kind: "english" }
   | { kind: "region"; regionId: string }
   | { kind: "postcode"; postcode: string }
   | { kind: "area"; placeId: string }
@@ -82,6 +83,7 @@ export function isGigScope(scope: Scope): scope is Extract<Scope, { kind: "week"
 
 export function parseScope(value: string | undefined | null): Scope | null {
   if (!value || value === "all") return { kind: "all" }
+  if (value === "english") return { kind: "english" }
   if (value.startsWith("region:")) {
     const regionId = value.slice("region:".length)
     if (!regionById(regionId)) return null
@@ -115,6 +117,7 @@ export function parseScope(value: string | undefined | null): Scope | null {
 
 export function scopeValue(scope: Scope): string {
   if (scope.kind === "all") return "all"
+  if (scope.kind === "english") return "english"
   if (scope.kind === "region") return `region:${scope.regionId}`
   if (scope.kind === "postcode") return `postcode:${scope.postcode}`
   if (scope.kind === "area") return `area:${scope.placeId}`
@@ -126,6 +129,7 @@ export function scopeValue(scope: Scope): string {
 
 export function scopeLabel(scope: Scope): string {
   if (scope.kind === "all") return "London"
+  if (scope.kind === "english") return "Your English favourites"
   if (scope.kind === "region") return regionById(scope.regionId)?.name ?? "London"
   if (scope.kind === "postcode") return scope.postcode
   if (scope.kind === "area") return placeById(scope.placeId)?.name ?? scope.placeId
@@ -144,6 +148,7 @@ export function gigScopePhrase(scope: Extract<Scope, { kind: "week" | "venue" }>
 
 export function artistsForScope(scope: Scope): ArtistRecord[] {
   if (scope.kind === "all") return catalogue.artists
+  if (scope.kind === "english") return []
   if (scope.kind === "region") return catalogue.artists.filter((artist) => artistInRegion(artist, scope.regionId))
   if (scope.kind === "postcode") return artistsInPostcode(scope.postcode)
   if (scope.kind === "area") return artistsInPlace(scope.placeId)

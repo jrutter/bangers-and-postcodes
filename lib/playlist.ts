@@ -50,6 +50,13 @@ export function playlistDescription(label: string): string {
   return `Artists linked to ${label}. Built by Bangers & Postcodes from public locality data across London.`.slice(0, 300)
 }
 
+export function englishPlaylistDescription(): string {
+  return "Artists from England in your Spotify top artists and follows. Built by Bangers & Postcodes. Places come from Wikidata and MusicBrainz, not from Spotify.".slice(
+    0,
+    300,
+  )
+}
+
 export function gigPlaylistDescription(phrase: string): string {
   return `Artists with gigs ${phrase}. Built by Bangers & Postcodes from local listings, one Spotify track each.`.slice(0, 300)
 }

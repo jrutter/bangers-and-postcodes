@@ -82,6 +82,7 @@ describe("analytics events", () => {
     ])
     expect(eventsForPath("/area/putney")).toEqual([{ event: "area_viewed", properties: { kind: "area", area: "putney" } }])
     expect(eventsForPath("/region/southwest")).toEqual([{ event: "region_viewed", properties: { region: "southwest" } }])
+    expect(eventsForPath("/favourites")).toEqual([{ event: "favourites_viewed", properties: { page: "favourites" } }])
     expect(eventsForPath("/venue/half-moon")).toEqual([{ event: "venue_viewed", properties: { venue: "half-moon" } }])
     expect(eventsForPath("/")).toEqual([])
   })

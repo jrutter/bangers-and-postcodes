@@ -29,6 +29,7 @@ const ERRORS: Record<string, string> = {
   state: "That login attempt expired. Use Log in with Spotify again.",
   auth: "Log in with Spotify before creating a playlist.",
   tracks: "None of these artists have a Spotify track to add yet.",
+  taste: "Log in again so Spotify can share your top artists and the artists you follow.",
   unknown: "The playlist could not be created. Try again.",
   scope: "That area is not in this catalogue.",
   gigs: "No artists were listed for that gig playlist, so nothing was created.",
@@ -67,7 +68,8 @@ export async function PlaylistPanel({
   const playlistTitle = first(query.name)
   const era = parseEra(first(query.era))
   const gigScope = isGigScope(scope)
-  const artistCount = gigScope ? 0 : filterArtists(artistsForScope(scope), era).length
+  const englishScope = scope.kind === "english"
+  const artistCount = gigScope || englishScope ? 0 : filterArtists(artistsForScope(scope), era).length
   const returnTo = withEra(`/playlist?scope=${encodeURIComponent(scopeValue(scope))}`, era)
 
   return (
@@ -117,6 +119,7 @@ export async function PlaylistPanel({
             className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none"
           >
             <option value="all">All of London</option>
+            <option value="english">Your English favourites</option>
             <optgroup label="Regions">
               {regions().map((region) => (
                 <option key={region.id} value={`region:${region.id}`}>
@@ -170,9 +173,11 @@ export async function PlaylistPanel({
             ))}
           </select>
           <p className="text-sm text-muted-foreground">
-            {gigScope
-              ? `Artists are whoever is billed ${gigScopePhrase(scope)}. Spotify matching runs when you create the playlist, up to ${PLAYLIST_TRACK_CAP} tracks.`
-              : `${artistCount} ${artistCount === 1 ? "artist" : "artists"} in the catalogue for ${scopeLabel(scope)}${era ? ` (${eraLabel(era)})` : ""}. The playlist keeps the top ${PLAYLIST_TRACK_CAP} tracks after a capped Spotify lookup.`}
+            {englishScope
+              ? "Artists from England among your Spotify top artists and follows. The check runs when you create the playlist, using Wikidata and MusicBrainz."
+              : gigScope
+                ? `Artists are whoever is billed ${gigScopePhrase(scope)}. Spotify matching runs when you create the playlist, up to ${PLAYLIST_TRACK_CAP} tracks.`
+                : `${artistCount} ${artistCount === 1 ? "artist" : "artists"} in the catalogue for ${scopeLabel(scope)}${era ? ` (${eraLabel(era)})` : ""}. The playlist keeps the top ${PLAYLIST_TRACK_CAP} tracks after a capped Spotify lookup.`}
           </p>
           {era ? <input type="hidden" name="era" value={era} /> : null}
         </div>

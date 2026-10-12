@@ -8,11 +8,14 @@ import { eraLabel, filterArtists, parseEra, PLAYLIST_TRACK_CAP, playlistCandidat
 import { loadRegionalGigs } from "@/lib/gigs/cache"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
 import { artistRecordsForGigs, selectGigs, selectionForScope } from "@/lib/gigs/select"
-import { gigPlaylistDescription, playlistDescription, playlistName, trackUris } from "@/lib/playlist"
+import { loadOrigins } from "@/lib/favourites-origin"
+import { readFavouriteArtists } from "@/lib/favourites-spotify"
+import { englishPlaylistDescription, gigPlaylistDescription, playlistDescription, playlistName, trackUris } from "@/lib/playlist"
 import { captureServerIfAllowed } from "@/lib/posthog-server"
 import { getUserToken } from "@/lib/session"
 import { matchArtistsCached } from "@/lib/spotify-match"
 import { SpotifyError, appendSpotifyFailure, spotifyClient } from "@/lib/spotify"
+import { TasteScopeError } from "@/lib/taste-spotify"
 import type { ArtistRecord } from "@/lib/types"
 
 export async function createPlaylist(formData: FormData) {
@@ -41,11 +44,33 @@ export async function createPlaylist(formData: FormData) {
   const name = playlistName(label, String(formData.get("name") || ""))
 
   let created: { url: string | null; trackCount: number; name: string } | null = null
-  let failure: "tracks" | "spotify" | "gigs" | "gig-keys" | "unknown" | null = null
+  let failure: "tracks" | "spotify" | "gigs" | "gig-keys" | "taste" | "unknown" | null = null
   let spotifyFailure: SpotifyError | null = null
   try {
-    const loaded = isGigScope(scope) ? await artistsFromGigs(scope) : { artists: artistsForScope(scope), failure: null }
-    if (loaded.failure) {
+    if (scope.kind === "english") {
+      const favourites = await readFavouriteArtists(token)
+      const origins = await loadOrigins(favourites, 40_000)
+      const ids = favourites.filter((artist) => origins.get(artist.id)?.status === "england").map((artist) => artist.id)
+      const uris = ids.length > 0 ? await client.tracksForArtists(ids) : []
+      if (uris.length === 0) {
+        failure = "tracks"
+      } else {
+        created = await client.createPlaylist(token, {
+          name,
+          description: englishPlaylistDescription(),
+          isPublic,
+          uris,
+        })
+      }
+    }
+    const loaded = scope.kind === "english"
+      ? null
+      : isGigScope(scope)
+        ? await artistsFromGigs(scope)
+        : { artists: artistsForScope(scope), failure: null }
+    if (!loaded) {
+      // English favourites were created above.
+    } else if (loaded.failure) {
       failure = loaded.failure
     } else {
       const eraArtists = isGigScope(scope) ? loaded.artists : filterArtists(loaded.artists, era)
@@ -66,7 +91,9 @@ export async function createPlaylist(formData: FormData) {
     }
   } catch (error) {
     unstable_rethrow(error)
-    if (error instanceof SpotifyError) {
+    if (error instanceof TasteScopeError) {
+      failure = "taste"
+    } else if (error instanceof SpotifyError) {
       spotifyFailure = error
     } else {
       console.error("[playlist] create failed", error instanceof Error ? error.message : "unknown")
@@ -134,7 +161,7 @@ async function reportPlaylist(input: {
 }
 
 function scopeKey(scope: Scope): string {
-  if (scope.kind === "all") return "all"
+  if (scope.kind === "all" || scope.kind === "english") return scope.kind
   if (scope.kind === "region") return scope.regionId
   if (scope.kind === "postcode") return scope.postcode
   if (scope.kind === "area") return scope.placeId
