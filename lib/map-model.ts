@@ -1,4 +1,4 @@
-import { playlistPath, postcodePath } from "@/lib/catalogue"
+import { playlistPath, postcodePath, venuePath } from "@/lib/paths"
 import { districtPoint, londonPostcodes } from "@/lib/districts"
 import { filterArtists, showcaseArtists, withEra, type EraFilter } from "@/lib/era"
 import { centroid } from "@/lib/geo"
@@ -7,7 +7,7 @@ import type { Gig } from "@/lib/gigs/types"
 import { indexTags, matchCandidate, matchGig, matchVenue, orderByTaste, type TasteProfile } from "@/lib/taste"
 import type { ArtistRecord, PlaceRecord } from "@/lib/types"
 import { artistsForPostcode, placesForPostcode } from "@/lib/stats"
-import { venuePath, type Venue } from "@/lib/venues"
+import type { Venue } from "@/lib/venues"
 
 const ARTIST_LIMIT = 5
 const GIG_LIMIT = 4

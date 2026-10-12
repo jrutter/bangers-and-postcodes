@@ -1,10 +1,12 @@
-import { cacheLife } from "next/cache"
+import { cacheLife, cacheTag, unstable_cache } from "next/cache"
 
 import { spotifyClient } from "@/lib/spotify"
 import type { ArtistRecord, MatchedArtist } from "@/lib/types"
 
+const ARTIST_REVALIDATE_SECONDS = 60 * 60 * 24
+
 /**
- * Spotify name matches are cached for a week. Callers pass a small page or a
+ * Spotify name matches are cached for 24 hours. Callers pass a small page or a
  * capped playlist sample, not the whole London catalogue.
  */
 export async function matchArtistsCached(artists: ArtistRecord[]): Promise<MatchedArtist[]> {
@@ -29,12 +31,19 @@ async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise
   return results
 }
 
+const matchArtistCached = unstable_cache(
+  async (artist: ArtistRecord): Promise<MatchedArtist> => spotifyClient().matchArtist(artist),
+  ["spotify-artist-match"],
+  { revalidate: ARTIST_REVALIDATE_SECONDS, tags: ["spotify", "artists"] },
+)
+
 async function cachedMatch(artist: ArtistRecord): Promise<MatchedArtist> {
   "use cache"
   cacheLife({
-    stale: 60 * 60 * 24,
-    revalidate: 60 * 60 * 24 * 7,
-    expire: 60 * 60 * 24 * 30,
+    stale: ARTIST_REVALIDATE_SECONDS,
+    revalidate: ARTIST_REVALIDATE_SECONDS,
+    expire: ARTIST_REVALIDATE_SECONDS * 7,
   })
-  return spotifyClient().matchArtist(artist)
+  cacheTag("spotify", "artists")
+  return matchArtistCached(artist)
 }

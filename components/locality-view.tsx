@@ -7,12 +7,12 @@ import { LinkButton } from "@/components/link-button"
 import { EraFilter } from "@/components/era-filter"
 import { LocalityBody } from "@/components/locality-body"
 import { Badge } from "@/components/ui/badge"
-import { areaPath, playlistPath, postcodePath, type Scope } from "@/lib/catalogue"
+import { areaPath, playlistPath, postcodePath, venuePath, venueTypeLabel, type Scope } from "@/lib/paths"
 import { eraScope, filterArtists, withEra, type EraFilter as Era } from "@/lib/era"
 import { defaultAreasForScope } from "@/lib/newsletter/areas"
 import type { GigSelection } from "@/lib/gigs/types"
+import type { PageRoom } from "@/lib/page-data"
 import type { ArtistRecord, PlaceRecord } from "@/lib/types"
-import { venuePath, venueTypeLabel, type Venue } from "@/lib/venues"
 
 export function LocalityView({
   kicker,
@@ -38,7 +38,7 @@ export function LocalityView({
   page?: number
   crumbs?: { href?: string; label: string }[]
   visitor?: { knownFor: string; gettingThere: string }
-  rooms?: Venue[]
+  rooms?: PageRoom[]
   gigs: {
     heading: string
     intro: string
@@ -112,7 +112,7 @@ export function LocalityView({
       <Suspense
         fallback={
           <div className="space-y-6">
-            <ArtistBoard artists={filtered} status="loading" />
+            <p className="text-sm text-muted-foreground">Loading artists…</p>
             <p className="text-sm text-muted-foreground">Checking gig listings…</p>
           </div>
         }

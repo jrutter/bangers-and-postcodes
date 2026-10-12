@@ -1,7 +1,5 @@
-import { areasInPostcode, places, postcodes } from "@/lib/catalogue"
-import { placeGigPostcodes } from "@/lib/gigs/select"
-import type { Scope } from "@/lib/catalogue"
-import { regionForPostcode } from "@/lib/regions"
+import { readNewsletterFile } from "@/lib/page-data"
+import type { Scope } from "@/lib/paths"
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -13,36 +11,19 @@ export type NewsletterArea = {
 }
 
 export function subscribablePostcodes(): string[] {
-  return postcodes()
+  return readNewsletterFile().postcodes
 }
 
 export function newsletterAreas(): NewsletterArea[] {
-  return subscribablePostcodes().map((code) => {
-    const region = regionForPostcode(code)
-    return {
-      code,
-      label: areaLabel(code),
-      regionId: region?.id ?? "london",
-      regionName: region?.name ?? "London",
-    }
-  })
+  return readNewsletterFile().areas
 }
 
 export function areaLabel(code: string): string {
-  const names = areasInPostcode(code)
-    .filter((place) => place.precision === "place")
-    .map((place) => place.name)
-  return names.length > 0 ? names.join(" & ") : code
+  return newsletterAreas().find((area) => area.code === code)?.label ?? code
 }
 
 export function areaPostcodeMap(): Record<string, string[]> {
-  const allowed = new Set(subscribablePostcodes())
-  const map: Record<string, string[]> = {}
-  for (const place of places()) {
-    const codes = place.precision === "borough" ? placeGigPostcodes(place.id) : place.postcodes
-    map[place.id] = codes.filter((code) => allowed.has(code))
-  }
-  return map
+  return readNewsletterFile().placePostcodes
 }
 
 export function defaultAreasForScope(scope: Scope): string[] {

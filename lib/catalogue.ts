@@ -1,8 +1,7 @@
 import catalogueJson from "@/data/artists.json"
 
 import { londonPostcodes } from "@/lib/districts"
-import type { ArtistRecord, Catalogue, PlaceRecord } from "@/lib/types"
-import { venueById } from "@/lib/venues"
+import { type Scope } from "@/lib/paths"
 import { artistInRegion, regionById } from "@/lib/regions"
 import {
   artistsForPlace,
@@ -13,6 +12,10 @@ import {
   postcodeList,
   precisionCounts,
 } from "@/lib/stats"
+import type { ArtistRecord, Catalogue, PlaceRecord } from "@/lib/types"
+import { venueById } from "@/lib/venues"
+
+export { areaPath, artistPath, formatGeneratedAt, isGigScope, playlistPath, postcodePath, scopeValue, type Scope } from "@/lib/paths"
 
 export const catalogue = catalogueJson as Catalogue
 
@@ -68,19 +71,6 @@ export function homePrecision() {
   return precisionCounts(catalogue.artists)
 }
 
-export type Scope =
-  | { kind: "all" }
-  | { kind: "english" }
-  | { kind: "region"; regionId: string }
-  | { kind: "postcode"; postcode: string }
-  | { kind: "area"; placeId: string }
-  | { kind: "venue"; venueId: string }
-  | { kind: "week"; focus: "all" | { postcode: string } | { placeId: string } }
-
-export function isGigScope(scope: Scope): scope is Extract<Scope, { kind: "week" | "venue" }> {
-  return scope.kind === "week" || scope.kind === "venue"
-}
-
 export function parseScope(value: string | undefined | null): Scope | null {
   if (!value || value === "all") return { kind: "all" }
   if (value === "english") return { kind: "english" }
@@ -115,18 +105,6 @@ export function parseScope(value: string | undefined | null): Scope | null {
   return null
 }
 
-export function scopeValue(scope: Scope): string {
-  if (scope.kind === "all") return "all"
-  if (scope.kind === "english") return "english"
-  if (scope.kind === "region") return `region:${scope.regionId}`
-  if (scope.kind === "postcode") return `postcode:${scope.postcode}`
-  if (scope.kind === "area") return `area:${scope.placeId}`
-  if (scope.kind === "venue") return `venue:${scope.venueId}`
-  if (scope.focus === "all") return "week:all"
-  if ("postcode" in scope.focus) return `week:${scope.focus.postcode}`
-  return `week:${scope.focus.placeId}`
-}
-
 export function scopeLabel(scope: Scope): string {
   if (scope.kind === "all") return "London"
   if (scope.kind === "english") return "Your English favourites"
@@ -155,26 +133,3 @@ export function artistsForScope(scope: Scope): ArtistRecord[] {
   return []
 }
 
-export function playlistPath(scope: Scope = { kind: "all" }): string {
-  if (scope.kind === "all") return "/playlist"
-  return `/playlist?scope=${encodeURIComponent(scopeValue(scope))}`
-}
-
-export function postcodePath(postcode: string): string {
-  return `/postcode/${postcode.toLowerCase()}`
-}
-
-export function areaPath(placeId: string): string {
-  return `/area/${placeId}`
-}
-
-export function formatGeneratedAt(iso: string): string {
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return iso
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(date)
-}

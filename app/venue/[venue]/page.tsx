@@ -5,27 +5,26 @@ import { Suspense } from "react"
 
 import { GigSection } from "@/components/gig-section"
 import { Breadcrumbs } from "@/components/breadcrumbs"
-import { areaPath, knownPostcode, placeById, postcodePath } from "@/lib/catalogue"
-import { regionForPostcode, regionPath } from "@/lib/regions"
-import { venueById, venueTypeLabel, venues } from "@/lib/venues"
+import { readManifest, readVenuePage } from "@/lib/page-data"
+import { areaPath, venueTypeLabel } from "@/lib/paths"
+import { regionById, regionPath } from "@/lib/regions"
 
 export const maxDuration = 120
 
-export function generateStaticParams() {
-  return venues().map((venue) => ({ venue: venue.id }))
+export async function generateStaticParams() {
+  return readManifest().venues.map((venue) => ({ venue }))
 }
 
 export async function generateMetadata(props: PageProps<"/venue/[venue]">): Promise<Metadata> {
   const { venue: venueId } = await props.params
-  const venue = venueById(venueId)
-  return { title: venue?.name ?? "Venue" }
+  return { title: readVenuePage(venueId)?.name ?? "Venue" }
 }
 
 export default async function VenuePage(props: PageProps<"/venue/[venue]">) {
   const { venue: venueId } = await props.params
-  const venue = venueById(venueId)
+  const venue = readVenuePage(venueId)
   if (!venue) notFound()
-  const region = regionForPostcode(venue.postcodeDistrict || venue.postcode)
+  const region = venue.regionId ? regionById(venue.regionId) : null
   return (
     <article className="space-y-10">
       <header className="max-w-3xl space-y-4">
@@ -45,22 +44,20 @@ export default async function VenuePage(props: PageProps<"/venue/[venue]">) {
           {venue.capacity ? ` Capacity listed as ${venue.capacity.toLocaleString("en-GB")}.` : ""}
         </p>
         <div className="flex flex-wrap gap-3 text-sm">
-          {venue.postcodes.map((code) =>
-            knownPostcode(code) ? (
-              <Link key={code} href={postcodePath(code)} className="underline decoration-border underline-offset-4">
-                {code}
+          {venue.postcodeLinks.map((link) =>
+            link.href ? (
+              <Link key={link.code} href={link.href} className="underline decoration-border underline-offset-4">
+                {link.code}
               </Link>
             ) : (
-              <span key={code}>{code}</span>
+              <span key={link.code}>{link.code}</span>
             ),
           )}
-          {venue.areaIds.map((areaId) =>
-            placeById(areaId) ? (
-              <Link key={areaId} href={areaPath(areaId)} className="underline decoration-border underline-offset-4">
-                {placeById(areaId)?.name}
-              </Link>
-            ) : null,
-          )}
+          {venue.areaLinks.map((area) => (
+            <Link key={area.id} href={areaPath(area.id)} className="underline decoration-border underline-offset-4">
+              {area.name}
+            </Link>
+          ))}
           {venue.website ? (
             <a className="underline decoration-border underline-offset-4" href={venue.website}>
               Website

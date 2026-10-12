@@ -2,32 +2,31 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
-import { LocalityView, placeLinks } from "@/components/locality-view"
-import { areasInPostcode, artistsInPostcode, knownPostcode, postcodes } from "@/lib/catalogue"
+import { LocalityView } from "@/components/locality-view"
+import { postcodeArea } from "@/lib/districts"
 import { parseEra } from "@/lib/era"
-import { areaInfo, regionPath } from "@/lib/regions"
-import { filterVenues, venues } from "@/lib/venues"
+import { readManifest, readPostcode } from "@/lib/page-data"
+import { regionById, regionPath } from "@/lib/regions"
 
 export const maxDuration = 120
 
-export function generateStaticParams() {
-  return postcodes().map((postcode) => ({ postcode: postcode.toLowerCase() }))
+export async function generateStaticParams() {
+  return readManifest().postcodes.map((postcode) => ({ postcode }))
 }
 
 export async function generateMetadata(props: PageProps<"/postcode/[postcode]">): Promise<Metadata> {
   const { postcode } = await props.params
-  const code = postcode.toUpperCase()
-  if (!knownPostcode(code)) return { title: "Postcode" }
-  return { title: code }
+  const page = readPostcode(postcode)
+  return { title: page?.code ?? "Postcode" }
 }
 
 export default async function PostcodePage(props: PageProps<"/postcode/[postcode]">) {
   const { postcode } = await props.params
-  const code = postcode.toUpperCase()
-  if (!knownPostcode(code)) notFound()
+  const page = readPostcode(postcode)
+  if (!page) notFound()
   return (
-    <Suspense fallback={<p className="text-sm text-muted-foreground">Loading {code}…</p>}>
-      <PostcodeBody code={code} searchParams={props.searchParams} />
+    <Suspense fallback={<p className="text-sm text-muted-foreground">Loading {page.code}…</p>}>
+      <PostcodeBody code={page.code} searchParams={props.searchParams} />
     </Suspense>
   )
 }
@@ -39,17 +38,17 @@ async function PostcodeBody({
   code: string
   searchParams: PageProps<"/postcode/[postcode]">["searchParams"]
 }) {
+  const page = readPostcode(code)
+  if (!page) notFound()
   const query = await searchParams
-  const areas = areasInPostcode(code)
-  const artists = artistsInPostcode(code)
-  const names = areas.map((place) => place.name).join(", ")
-  const page = Number(firstQuery(query.page) || "1")
-  const info = areaInfo(code)
-  const region = info?.region
+  const names = page.placeNames.join(", ")
+  const pageNumber = Number(firstQuery(query.page) || "1")
+  const region = page.regionId ? regionById(page.regionId) : null
+  const info = region?.areas.find((area) => area.code === postcodeArea(code))
   return (
     <LocalityView
       era={parseEra(firstQuery(query.era))}
-      page={Number.isFinite(page) ? page : 1}
+      page={Number.isFinite(pageNumber) ? pageNumber : 1}
       crumbs={[
         { href: "/", label: "London" },
         ...(region ? [{ href: regionPath(region.id), label: region.name }] : []),
@@ -58,12 +57,12 @@ async function PostcodeBody({
       visitor={
         info
           ? {
-              knownFor: `${region?.knownFor ?? ""} ${info.area.knownFor}`.trim(),
-              gettingThere: info.area.gettingThere,
+              knownFor: `${region?.knownFor ?? ""} ${info.knownFor}`.trim(),
+              gettingThere: info.gettingThere,
             }
           : undefined
       }
-      rooms={filterVenues(venues(), { area: code })}
+      rooms={page.rooms}
       kicker={region?.name ?? "Postcode"}
       title={code}
       note={
@@ -71,8 +70,8 @@ async function PostcodeBody({
           ? `${names}. Artist counts on this page use place-level links whose postcodes include ${code}. Borough-only artists are listed on their borough page instead.`
           : `No neighbourhood in the catalogue is tied to ${code} yet. Borough-level artists stay on their borough page.`
       }
-      artists={artists}
-      places={placeLinks(areas)}
+      artists={page.artists}
+      places={page.places}
       scope={{ kind: "postcode", postcode: code }}
       gigs={{
         heading: "What's on this week",

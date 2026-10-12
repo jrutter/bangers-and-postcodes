@@ -336,7 +336,7 @@ async function sparql(fetchImpl: typeof fetch, query: string): Promise<unknown> 
       "User-Agent": LOOKUP_USER_AGENT,
     },
     body: query,
-    cache: "no-store",
+    next: { revalidate: 60 * 60 * 24, tags: ["musicbrainz", "artists"] },
   })
   if (!response.ok) throw new Error(`Wikidata lookup failed (${response.status}).`)
   return response.json()
@@ -345,7 +345,7 @@ async function sparql(fetchImpl: typeof fetch, query: string): Promise<unknown> 
 async function getJson(fetchImpl: typeof fetch, url: string): Promise<unknown> {
   const response = await fetchImpl(url, {
     headers: { Accept: "application/json", "User-Agent": LOOKUP_USER_AGENT },
-    cache: "no-store",
+    next: { revalidate: 60 * 60 * 24, tags: ["musicbrainz", "artists"] },
   })
   if (!response.ok) throw new Error(`MusicBrainz lookup failed (${response.status}).`)
   return response.json()

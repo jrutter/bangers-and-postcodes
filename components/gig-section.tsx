@@ -1,9 +1,7 @@
-import { connection } from "next/server"
-
 import { GigList } from "@/components/gig-list"
 import { LinkButton } from "@/components/link-button"
-import { artists, isGigScope, playlistPath, type Scope } from "@/lib/catalogue"
-import { loadRegionalGigs } from "@/lib/gigs/cache"
+import { isGigScope, playlistPath, type Scope } from "@/lib/paths"
+import { cachedClock, loadRegionalGigs } from "@/lib/gigs/cache"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
 import { artistRecordsForGigs, selectGigs, selectionForScope } from "@/lib/gigs/select"
 import { linksForGigArtists } from "@/lib/gigs/spotify"
@@ -39,9 +37,9 @@ export async function GigSection({
   sortTaste?: TasteProfile | null
 }) {
   const resolved = await resolveFeed(feed)
-  const now = new Date()
+  const now = new Date(await cachedClock())
   const selected = selectGigs(resolved.gigs, selection, span, now)
-  const tags = sortTaste ? indexTags(artists()) : undefined
+  const tags = sortTaste ? indexTags((await import("@/lib/catalogue")).artists()) : undefined
   const ranked = sortTaste ? orderByTaste(selected, (gig) => matchGig(sortTaste, gig, tags)) : null
   const gigs = ranked ? ranked.map((row) => row.item) : selected
   const reasons = ranked
@@ -93,7 +91,6 @@ function playlistGigsFor(feed: GigFeed, scope: Scope | undefined, now: Date): Ta
 
 async function resolveFeed(feed: GigFeed | undefined): Promise<GigFeed> {
   if (feed) return feed
-  await connection()
   return loadRegionalGigs(gigProviderFingerprint())
 }
 

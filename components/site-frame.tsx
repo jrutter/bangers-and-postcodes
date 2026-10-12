@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Suspense } from "react"
 
 import { NewsletterSignup } from "@/components/newsletter-signup"
-import { playlistPath } from "@/lib/catalogue"
+import { playlistPath } from "@/lib/paths"
 
 export function SiteFrame({ children }: { children: React.ReactNode }) {
   return (
