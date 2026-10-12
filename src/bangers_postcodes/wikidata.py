@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 import httpx
 
 from bangers_postcodes.areas import PLACES
@@ -64,7 +66,7 @@ def build_query(qids: list[str] | None = None) -> str:
     ids = qids or [place.wikidata_qid for place in PLACES if place.wikidata_qid]
     values = " ".join(f"wd:{qid}" for qid in ids)
     return f"""
-SELECT ?item ?itemLabel ?mbid ?place ?placeLabel ?claim ?occLabel ?classLabel WHERE {{
+SELECT ?item ?itemLabel ?mbid ?place ?placeLabel ?claim ?occLabel ?classLabel ?born ?died ?inception ?dissolved WHERE {{
   VALUES ?place {{ {values} }}
   {{
     ?item wdt:P19 ?place .
@@ -84,6 +86,10 @@ SELECT ?item ?itemLabel ?mbid ?place ?placeLabel ?claim ?occLabel ?classLabel WH
   OPTIONAL {{ ?item wdt:P434 ?mbid }}
   OPTIONAL {{ ?item wdt:P106 ?occ }}
   OPTIONAL {{ ?item wdt:P31 ?class }}
+  OPTIONAL {{ ?item wdt:P569 ?born }}
+  OPTIONAL {{ ?item wdt:P570 ?died }}
+  OPTIONAL {{ ?item wdt:P571 ?inception }}
+  OPTIONAL {{ ?item wdt:P576 ?dissolved }}
   SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
 }}
 """.strip()
@@ -123,6 +129,10 @@ def fetch_rows(*, http: httpx.Client | None = None, query: str | None = None) ->
                 "claim": _value(binding.get("claim")),
                 "occupation": _value(binding.get("occLabel")) or None,
                 "instance_of": _value(binding.get("classLabel")) or None,
+                "born": _year(_value(binding.get("born"))),
+                "died": _year(_value(binding.get("died"))),
+                "inception": _year(_value(binding.get("inception"))),
+                "dissolved": _year(_value(binding.get("dissolved"))),
             }
         )
     return rows
@@ -144,12 +154,20 @@ def group_rows(rows: list[dict]) -> list[dict]:
                 "claim": row.get("claim"),
                 "occupations": [],
                 "instance_of": [],
+                "born": None,
+                "died": None,
+                "inception": None,
+                "dissolved": None,
             }
             grouped[key] = current
         if row.get("occupation") and row["occupation"] not in current["occupations"]:
             current["occupations"].append(row["occupation"])
         if row.get("instance_of") and row["instance_of"] not in current["instance_of"]:
             current["instance_of"].append(row["instance_of"])
+        for field in ("born", "died", "inception", "dissolved"):
+            year = row.get(field)
+            if isinstance(year, int) and current.get(field) is None:
+                current[field] = year
     return list(grouped.values())
 
 
@@ -168,6 +186,16 @@ def _is_group(record: dict) -> bool:
         if label.casefold().strip() in GROUP_LABELS:
             return True
     return False
+
+
+def _year(value: str) -> int | None:
+    match = re.search(r"(\d{4})", value or "")
+    if not match:
+        return None
+    year = int(match.group(1))
+    if year < 1000 or year > 2100:
+        return None
+    return year
 
 
 def _value(node: dict | None) -> str:

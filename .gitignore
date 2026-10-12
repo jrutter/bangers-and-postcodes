@@ -18,3 +18,4 @@ public/maplibre-gl-worker.mjs
 !.env.example
 
 data/run.json
+data/.mb-cache/

@@ -101,6 +101,8 @@ export function eventsForPath(pathname: string): { event: string; properties: Re
   }
   const area = pathname.match(/^\/area\/([a-z0-9-]+)$/i)
   if (area?.[1]) return [{ event: "area_viewed", properties: { kind: "area", area: area[1] } }]
+  const region = pathname.match(/^\/region\/([a-z0-9-]+)$/i)
+  if (region?.[1]) return [{ event: "region_viewed", properties: { region: region[1] } }]
   const venue = pathname.match(/^\/venue\/([a-z0-9-]+)$/i)
   if (venue?.[1]) return [{ event: "venue_viewed", properties: { venue: venue[1] } }]
   return []

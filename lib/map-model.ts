@@ -1,4 +1,6 @@
-import { areaPath, playlistPath, postcodePath, knownPostcode } from "@/lib/catalogue"
+import { playlistPath, postcodePath } from "@/lib/catalogue"
+import { districtPoint, londonPostcodes } from "@/lib/districts"
+import { filterArtists, showcaseArtists, withEra, type EraFilter } from "@/lib/era"
 import { centroid } from "@/lib/geo"
 import { formatGigWhen, selectGigs } from "@/lib/gigs/select"
 import type { Gig } from "@/lib/gigs/types"
@@ -6,19 +8,6 @@ import { indexTags, matchCandidate, matchGig, matchVenue, orderByTaste, type Tas
 import type { ArtistRecord, PlaceRecord } from "@/lib/types"
 import { artistsForPostcode, placesForPostcode } from "@/lib/stats"
 import { venuePath, type Venue } from "@/lib/venues"
-
-/** Keyless MapLibre style. OpenFreeMap serves OpenStreetMap vector tiles with no API key. */
-export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty"
-
-export const MAP_ATTRIBUTION =
-  "District boundaries © Wikipedia contributors, CC BY-SA 3.0. Map data © OpenStreetMap contributors, ODbL. Tiles from OpenFreeMap."
-
-const DISTRICT_ORDER = ["SW13", "SW15", "SW14", "SW6", "SW18", "SW19", "TW9", "TW10", "KT1", "KT2", "TW1", "SW12"]
-
-const OUTSIDE_CATALOGUE: Record<string, string> = {
-  TW1: "Twickenham",
-  SW12: "Balham",
-}
 
 const ARTIST_LIMIT = 5
 const GIG_LIMIT = 4
@@ -36,12 +25,21 @@ export type MapArtist = {
   reason: string | null
 }
 
+export type MapDistrictVenue = {
+  id: string
+  name: string
+  type: string
+  pageHref: string
+}
+
 export type MapDistrict = {
   postcode: string
   label: string
   artistCount: number
   artists: MapArtist[]
   gigs: MapGig[]
+  venueCount: number
+  venues: MapDistrictVenue[]
   playlistHref: string | null
   pageHref: string | null
   highlighted: boolean
@@ -62,6 +60,8 @@ export type MapVenuePin = {
   pageHref: string
   highlighted: boolean
   highlightReason: string | null
+  type: string
+  borough: string | null
 }
 
 export type MapModel = {
@@ -69,6 +69,7 @@ export type MapModel = {
   venues: MapVenuePin[]
   personalised: boolean
   listingsConfigured: boolean
+  focusRegionId: string | null
 }
 
 export function buildMapModel(input: {
@@ -79,24 +80,30 @@ export function buildMapModel(input: {
   now: Date
   profile: TasteProfile | null
   listingsConfigured: boolean
+  era?: EraFilter | null
+  focusRegionId?: string | null
 }): MapModel {
   const tags = indexTags(input.artists)
   const profile = input.profile
-  const districts = DISTRICT_ORDER.map((postcode) => {
-    const localArtists = artistsForPostcode(input.artists, postcode).sort((left, right) =>
+  const era = input.era ?? null
+  const districts = londonPostcodes().map((postcode) => {
+    const localArtists = filterArtists(artistsForPostcode(input.artists, postcode), era, input.now).sort((left, right) =>
       left.name.localeCompare(right.name, "en"),
     )
     const gigs = selectGigs(input.gigs, { kind: "postcode", postcode }, "upcoming", input.now)
-    const point = centroid(postcode)
+    const point = districtPoint(postcode) ?? centroid(postcode)
     const highlight = profile ? bestDistrictMatch(profile, localArtists, gigs, tags) : null
+    const playlist = playlistPath({ kind: "postcode", postcode })
     return {
       postcode,
       label: districtLabel(postcode, input.places),
       artistCount: localArtists.length,
-      artists: topArtists(localArtists, profile),
+      artists: topArtists(localArtists, profile, input.now),
       gigs: gigs.slice(0, GIG_LIMIT).map(toMapGig),
-      playlistHref: knownPostcode(postcode) ? playlistPath({ kind: "postcode", postcode }) : null,
-      pageHref: knownPostcode(postcode) ? postcodePath(postcode) : areaPathFor(postcode, input.places),
+      playlistHref: localArtists.length > 0 ? withEra(playlist, era) : null,
+      pageHref: withEra(postcodePath(postcode), era),
+      venueCount: 0,
+      venues: [] as MapDistrictVenue[],
       highlighted: Boolean(highlight),
       highlightReason: highlight?.reason ?? null,
       latitude: point?.latitude ?? 0,
@@ -104,13 +111,13 @@ export function buildMapModel(input: {
     }
   })
 
-  const venues = input.venues.map((venue) => {
+  const pins = input.venues.map((venue) => {
     const gigs = selectGigs(input.gigs, { kind: "venue", venueId: venue.id }, "upcoming", input.now)
     const highlight = profile ? matchVenue(profile, gigs, tags) : null
     return {
       id: venue.id,
       name: venue.name,
-      address: `${venue.address}, ${venue.postcode}`,
+      address: venue.address ? `${venue.address}${venue.postcode ? `, ${venue.postcode}` : ""}` : venue.postcode,
       postcode: venue.postcode,
       latitude: venue.latitude,
       longitude: venue.longitude,
@@ -119,14 +126,37 @@ export function buildMapModel(input: {
       pageHref: venuePath(venue.id),
       highlighted: Boolean(highlight),
       highlightReason: highlight?.reason ?? null,
+      type: venue.type,
+      borough: venue.borough,
     }
   })
+  const pinsByPostcode = new Map<string, MapVenuePin[]>()
+  input.venues.forEach((venue, index) => {
+    const pin = pins[index]
+    if (!pin) return
+    for (const postcode of venue.postcodes) {
+      const list = pinsByPostcode.get(postcode) ?? []
+      list.push(pin)
+      pinsByPostcode.set(postcode, list)
+    }
+  })
+  for (const district of districts) {
+    const local = pinsByPostcode.get(district.postcode) ?? []
+    district.venueCount = local.length
+    district.venues = local.slice(0, 8).map((pin) => ({
+      id: pin.id,
+      name: pin.name,
+      type: pin.type,
+      pageHref: pin.pageHref,
+    }))
+  }
 
   return {
     districts,
-    venues,
+    venues: pins,
     personalised: Boolean(profile),
     listingsConfigured: input.listingsConfigured,
+    focusRegionId: input.focusRegionId ?? null,
   }
 }
 
@@ -134,22 +164,15 @@ function districtLabel(postcode: string, places: PlaceRecord[]): string {
   const names = placesForPostcode(places, postcode)
     .filter((place) => place.precision === "place")
     .map((place) => place.name)
-  if (names.length > 0) return names.join(", ")
-  return OUTSIDE_CATALOGUE[postcode] ?? postcode
+  if (names.length > 0) return names.slice(0, 4).join(", ")
+  return postcode
 }
 
-function areaPathFor(postcode: string, places: PlaceRecord[]): string | null {
-  const place = placesForPostcode(places, postcode).find((item) => item.precision === "place")
-  if (place) return areaPath(place.id)
-  if (postcode === "TW1") return areaPath("richmond-borough")
-  if (postcode === "SW12") return areaPath("wandsworth-borough")
-  return null
-}
-
-function topArtists(artists: ArtistRecord[], profile: TasteProfile | null): MapArtist[] {
+function topArtists(artists: ArtistRecord[], profile: TasteProfile | null, now: Date): MapArtist[] {
+  const mixed = showcaseArtists(artists, ARTIST_LIMIT, now)
   const ranked = profile
-    ? orderByTaste(artists, (artist) => matchCandidate(profile, { name: artist.name, tags: artist.tags }))
-    : artists.map((item) => ({ item, taste: null }))
+    ? orderByTaste(mixed, (artist) => matchCandidate(profile, { name: artist.name, tags: artist.tags }))
+    : mixed.map((item) => ({ item, taste: null }))
   return ranked.slice(0, ARTIST_LIMIT).map((row) => ({
     name: row.item.name,
     reason: row.taste?.reason ?? null,

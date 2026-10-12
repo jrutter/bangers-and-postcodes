@@ -1,63 +1,67 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
-import { connection } from "next/server"
 
-import { MapCanvas } from "@/components/map-canvas"
-import { MapIndex } from "@/components/map-index"
-import { TastePrompt } from "@/components/taste-prompt"
-import { artists, places } from "@/lib/catalogue"
-import { loadRegionalGigs } from "@/lib/gigs/cache"
-import { gigProviderFingerprint } from "@/lib/gigs/providers"
-import { buildMapModel } from "@/lib/map-model"
-import { loadTasteSession } from "@/lib/taste-session"
-import { venues } from "@/lib/venues"
+import { Breadcrumbs } from "@/components/breadcrumbs"
+import { EraFilter } from "@/components/era-filter"
+import { LondonMap } from "@/components/london-map"
+import { parseEra, withEra } from "@/lib/era"
+import { regionById, regionPath } from "@/lib/regions"
 
 export const metadata: Metadata = {
   title: "Map",
-  description: "A map of southwest London postcode districts and music venues.",
+  description: "A map of Greater London postcode districts and music venues.",
 }
 
 export const maxDuration = 60
 
-export default function MapPage() {
+export default function MapPage(props: PageProps<"/map">) {
+  return (
+    <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the map…</p>}>
+      <MapBody searchParams={props.searchParams} />
+    </Suspense>
+  )
+}
+
+async function MapBody({ searchParams }: { searchParams: PageProps<"/map">["searchParams"] }) {
+  const query = await searchParams
+  const era = parseEra(firstQuery(query.era))
+  const region = regionById(firstQuery(query.region))
+  const returnTo = withEra(region ? `/map?region=${region.id}` : "/map", era)
   return (
     <div className="space-y-8">
       <header className="max-w-3xl space-y-4">
-        <p className="text-sm font-medium tracking-[0.16em] text-info uppercase">Southwest London</p>
-        <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-5xl">Map</h1>
+        <Breadcrumbs
+          items={
+            region
+              ? [
+                  { href: "/", label: "London" },
+                  { href: regionPath(region.id), label: region.name },
+                  { label: "Map" },
+                ]
+              : [
+                  { href: "/", label: "London" },
+                  { label: "Map" },
+                ]
+          }
+        />
+        <p className="text-sm font-medium tracking-[0.16em] text-info uppercase">London</p>
+        <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-5xl">
+          {region ? region.name : "Map"}
+        </h1>
         <p className="text-base leading-7 text-muted-foreground">
-          Postcode districts from Barnes to Wimbledon, plus Twickenham and Balham where the venue list reaches. Tap a
-          district for its artists and gigs, or a pin for a room.
+          {region
+            ? `${region.intro} Tap a district for artists and venues. Pins group together until you zoom in.`
+            : "Every postcode district inside Greater London. Tap a district to zoom into its region, then tap again for artists, venues, and a playlist. Gig listings stay on the southwest search."}
         </p>
+        <EraFilter path={region ? `/map?region=${region.id}` : "/map"} era={era} />
       </header>
       <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the map…</p>}>
-        <MapBody />
+        <LondonMap era={era} regionId={region?.id ?? null} showIndex returnTo={returnTo} />
       </Suspense>
     </div>
   )
 }
 
-async function MapBody() {
-  await connection()
-  const feed = await loadRegionalGigs(gigProviderFingerprint())
-  const taste = await loadTasteSession("/map")
-  const profile = taste.status === "ready" ? taste.profile : null
-  const model = buildMapModel({
-    artists: artists(),
-    places: places(),
-    venues: venues(),
-    gigs: feed.gigs,
-    now: new Date(),
-    profile,
-    listingsConfigured: feed.providers.some((provider) => provider.configured),
-  })
-  return (
-    <div className="space-y-8">
-      {taste.status === "anonymous" ? <TastePrompt returnTo="/map" mode="anonymous" /> : null}
-      {taste.status === "needs-scope" ? <TastePrompt returnTo="/map" mode="needs-scope" /> : null}
-      {taste.status === "error" ? <p className="text-sm text-muted-foreground">{taste.message}</p> : null}
-      <MapCanvas model={model} />
-      <MapIndex model={model} />
-    </div>
-  )
+function firstQuery(value: string | string[] | undefined): string {
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "")
 }
