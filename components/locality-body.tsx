@@ -4,7 +4,7 @@ import { ArtistBoard, type BoardStatus } from "@/components/artist-board"
 import { ForYou } from "@/components/for-you"
 import { GigSection } from "@/components/gig-section"
 import { areaPath, postcodePath, type Scope } from "@/lib/paths"
-import { loadRegionalGigs } from "@/lib/gigs/cache"
+import { cachedClock, loadRegionalGigs } from "@/lib/gigs/cache"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
 import { selectGigs } from "@/lib/gigs/select"
 import type { GigSelection } from "@/lib/gigs/types"
@@ -57,7 +57,7 @@ export async function LocalityBody({
   const pageArtistsMatched = paged.items.map((artist) => byKey.get(artistKey(artist)) ?? artist)
   const showcase = featured.map((artist) => byKey.get(artistKey(artist)) ?? artist)
   const feed = await loadRegionalGigs(gigProviderFingerprint())
-  const localGigs = selectGigs(feed.gigs, gigs.selection, "upcoming", new Date())
+  const localGigs = selectGigs(feed.gigs, gigs.selection, "upcoming", new Date(await cachedClock()))
 
   return (
     <div className="space-y-10">

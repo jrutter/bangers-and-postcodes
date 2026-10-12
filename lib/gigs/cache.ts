@@ -23,6 +23,18 @@ const readRegionalGigs = unstable_cache(
   { revalidate: GIG_REVALIDATE_SECONDS, tags: ["gigs"] },
 )
 
+/** A clock inside the gig cache, so prerender does not see a fresh `new Date()`. */
+export async function cachedClock(): Promise<string> {
+  "use cache"
+  cacheLife({
+    stale: 60 * 60,
+    revalidate: GIG_REVALIDATE_SECONDS,
+    expire: ARTIST_REVALIDATE_SECONDS,
+  })
+  cacheTag("gigs")
+  return new Date().toISOString()
+}
+
 export async function loadRegionalGigs(providerFingerprint: string): Promise<GigFeed> {
   "use cache"
   cacheLife({

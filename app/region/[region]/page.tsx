@@ -10,7 +10,7 @@ import { GigSection } from "@/components/gig-section"
 import { LinkButton } from "@/components/link-button"
 import { filterArtists, parseEra, showcaseArtists, withEra } from "@/lib/era"
 import { GIG_REVALIDATE_SECONDS } from "@/lib/gigs/constants"
-import { loadRegionalGigs } from "@/lib/gigs/cache"
+import { cachedClock, loadRegionalGigs } from "@/lib/gigs/cache"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
 import { listingVenues, selectGigs } from "@/lib/gigs/select"
 import { readManifest, readRegion, type RegionPageData } from "@/lib/page-data"
@@ -38,11 +38,12 @@ export default async function RegionPage(props: PageProps<"/region/[region]">) {
   const region = regionById(regionId)
   const slice = readRegion(regionId)
   if (!region || !slice) notFound()
+  const now = new Date(await cachedClock())
   return (
     <article className="space-y-10">
       <RegionIntro regionId={region.id} />
-      <Suspense fallback={<RegionLists slice={slice} era={null} />}>
-        <RegionEra regionId={region.id} slice={slice} searchParams={props.searchParams} />
+      <Suspense fallback={<RegionLists slice={slice} era={null} now={now} />}>
+        <RegionEra regionId={region.id} slice={slice} now={now} searchParams={props.searchParams} />
       </Suspense>
       <Suspense fallback={<p className="text-sm text-muted-foreground">Checking this week's gigs…</p>}>
         <RegionGigs regionId={region.id} />
@@ -87,22 +88,34 @@ async function RegionIntro({ regionId }: { regionId: string }) {
 async function RegionEra({
   regionId,
   slice,
+  now,
   searchParams,
 }: {
   regionId: string
   slice: RegionPageData
+  now: Date
   searchParams: PageProps<"/region/[region]">["searchParams"]
 }) {
   const query = await searchParams
   const era = parseEra(firstQuery(query.era))
-  return <RegionLists slice={slice} era={era} regionId={regionId} />
+  return <RegionLists slice={slice} era={era} regionId={regionId} now={now} />
 }
 
-function RegionLists({ slice, era, regionId }: { slice: RegionPageData; era: ReturnType<typeof parseEra>; regionId?: string }) {
+function RegionLists({
+  slice,
+  era,
+  now,
+  regionId,
+}: {
+  slice: RegionPageData
+  era: ReturnType<typeof parseEra>
+  now: Date
+  regionId?: string
+}) {
   const id = regionId ?? slice.id
   const records = slice.artists.map(asArtist)
-  const localArtists = filterArtists(records, era)
-  const shown = showcaseArtists(localArtists, 8)
+  const localArtists = filterArtists(records, era, now)
+  const shown = showcaseArtists(localArtists, 8, now)
   const bySlug = new Map(slice.artists.map((artist) => [artist.slug, artist]))
   return (
     <>
@@ -120,7 +133,7 @@ function RegionLists({ slice, era, regionId }: { slice: RegionPageData; era: Ret
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {slice.districts.map((district) => {
             const count = era
-              ? slice.artists.filter((artist) => artist.postcodes.includes(district.code) && matches(artist, era)).length
+              ? slice.artists.filter((artist) => artist.postcodes.includes(district.code) && matches(artist, era, now)).length
               : district.artistCount
             return (
               <li key={district.code}>
@@ -188,7 +201,7 @@ async function RegionGigs({ regionId }: { regionId: string }) {
   const region = regionById(regionId)
   if (!region) return null
   const feed = await loadRegionalGigs(gigProviderFingerprint())
-  const week = selectGigs(feed.gigs, { kind: "region", regionId }, "week", new Date())
+  const week = selectGigs(feed.gigs, { kind: "region", regionId }, "week", new Date(await cachedClock()))
   const extraRooms = listingVenues(week)
   return (
     <div className="space-y-8">
@@ -240,8 +253,8 @@ function asArtist(row: RegionPageData["artists"][number]): ArtistRecord {
   }
 }
 
-function matches(row: RegionPageData["artists"][number], era: NonNullable<ReturnType<typeof parseEra>>): boolean {
-  return filterArtists([asArtist(row)], era).length === 1
+function matches(row: RegionPageData["artists"][number], era: NonNullable<ReturnType<typeof parseEra>>, now: Date): boolean {
+  return filterArtists([asArtist(row)], era, now).length === 1
 }
 
 function firstQuery(value: string | string[] | undefined): string | null {

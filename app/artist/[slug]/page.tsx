@@ -7,7 +7,7 @@ import { Suspense } from "react"
 
 import { Breadcrumbs } from "@/components/breadcrumbs"
 import { GigList } from "@/components/gig-list"
-import { loadRegionalGigs } from "@/lib/gigs/cache"
+import { cachedClock, loadRegionalGigs } from "@/lib/gigs/cache"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
 import { gigsForArtist, selectGigs } from "@/lib/gigs/select"
 import { linksForGigArtists } from "@/lib/gigs/spotify"
@@ -98,7 +98,7 @@ async function ArtistArticle({ slug }: { slug: string }) {
 
 async function ArtistGigs({ name }: { name: string }) {
   const feed = await loadRegionalGigs(gigProviderFingerprint())
-  const upcoming = gigsForArtist(name, selectGigs(feed.gigs, { kind: "london" }, "upcoming", new Date()))
+  const upcoming = gigsForArtist(name, selectGigs(feed.gigs, { kind: "london" }, "upcoming", new Date(await cachedClock())))
   if (upcoming.length === 0) return null
   const spotify = await linksForGigArtists(upcoming, [])
   return (

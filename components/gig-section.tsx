@@ -1,7 +1,7 @@
 import { GigList } from "@/components/gig-list"
 import { LinkButton } from "@/components/link-button"
 import { isGigScope, playlistPath, type Scope } from "@/lib/paths"
-import { loadRegionalGigs } from "@/lib/gigs/cache"
+import { cachedClock, loadRegionalGigs } from "@/lib/gigs/cache"
 import { gigProviderFingerprint } from "@/lib/gigs/providers"
 import { artistRecordsForGigs, selectGigs, selectionForScope } from "@/lib/gigs/select"
 import { linksForGigArtists } from "@/lib/gigs/spotify"
@@ -37,7 +37,7 @@ export async function GigSection({
   sortTaste?: TasteProfile | null
 }) {
   const resolved = await resolveFeed(feed)
-  const now = new Date()
+  const now = new Date(await cachedClock())
   const selected = selectGigs(resolved.gigs, selection, span, now)
   const tags = sortTaste ? indexTags((await import("@/lib/catalogue")).artists()) : undefined
   const ranked = sortTaste ? orderByTaste(selected, (gig) => matchGig(sortTaste, gig, tags)) : null
