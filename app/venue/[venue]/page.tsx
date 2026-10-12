@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
 import { GigSection } from "@/components/gig-section"
+import { VenueRank } from "@/components/venue-rank"
 import { Breadcrumbs } from "@/components/breadcrumbs"
 import { readManifest, readVenuePage } from "@/lib/page-data"
 import { areaPath, venueTypeLabel } from "@/lib/paths"
@@ -39,6 +40,9 @@ export default async function VenuePage(props: PageProps<"/venue/[venue]">) {
           {[venueTypeLabel(venue.type), venue.grassroots ? "Grassroots" : null, venue.borough].filter(Boolean).join(" · ")}
         </p>
         <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-5xl">{venue.name}</h1>
+        <Suspense fallback={null}>
+          <VenueRank venueId={venue.id} />
+        </Suspense>
         <p className="text-base leading-7 text-muted-foreground">
           {[venue.address, venue.postcode].filter(Boolean).join(", ")}. {venue.note}
           {venue.capacity ? ` Capacity listed as ${venue.capacity.toLocaleString("en-GB")}.` : ""}

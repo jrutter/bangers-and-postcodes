@@ -1,5 +1,7 @@
 import { searchWindow } from "@/lib/geo"
 import {
+  BANDSINTOWN_PACE_MS,
+  BANDSINTOWN_REQUEST_BUDGET,
   SKIDDLE_PACE_MS,
   SKIDDLE_REQUEST_BUDGET,
   TICKETMASTER_PACE_MS,
@@ -14,11 +16,13 @@ import type { Gig, GigDeps, GigFeed, GigProviderId, GigSearch } from "@/lib/gigs
 const PACE_MS: Record<GigProviderId, number> = {
   skiddle: SKIDDLE_PACE_MS,
   ticketmaster: TICKETMASTER_PACE_MS,
+  bandsintown: BANDSINTOWN_PACE_MS,
 }
 
 const REQUEST_BUDGET: Record<GigProviderId, number> = {
   skiddle: SKIDDLE_REQUEST_BUDGET,
   ticketmaster: TICKETMASTER_REQUEST_BUDGET,
+  bandsintown: BANDSINTOWN_REQUEST_BUDGET,
 }
 
 export async function collectRegionalGigs(options?: GigDeps & { now?: Date }): Promise<GigFeed> {
@@ -39,6 +43,23 @@ export async function collectRegionalGigs(options?: GigDeps & { now?: Date }): P
         env,
         paceMs: paceMs ?? PACE_MS[provider.id],
         requests,
+        artistNames: options?.artistNames,
+      }
+      if (provider.searchCity) {
+        try {
+          const found = await provider.searchCity({ ...window, now }, deps)
+          return {
+            id: provider.id,
+            label: provider.label,
+            configured: true,
+            error: null,
+            count: found.length,
+            gigs: found,
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : `${provider.label} could not be loaded.`
+          return { id: provider.id, label: provider.label, configured: true, error: message, count: 0, gigs: [] as Gig[] }
+        }
       }
       const found: Gig[] = []
       let failures = 0

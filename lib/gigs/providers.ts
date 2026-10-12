@@ -1,9 +1,10 @@
+import { bandsintownProvider } from "@/lib/gigs/bandsintown"
 import { skiddleProvider } from "@/lib/gigs/skiddle"
 import { ticketmasterProvider } from "@/lib/gigs/ticketmaster"
 import type { GigProvider, GigProviderId } from "@/lib/gigs/types"
 
 /** Add a provider by implementing GigProvider and appending it here. */
-export const gigProviders: GigProvider[] = [skiddleProvider, ticketmasterProvider]
+export const gigProviders: GigProvider[] = [skiddleProvider, ticketmasterProvider, bandsintownProvider]
 
 export function gigProviderFingerprint(env: NodeJS.ProcessEnv = process.env): string {
   const ids = gigProviders.filter((provider) => provider.configured(env)).map((provider) => provider.id)

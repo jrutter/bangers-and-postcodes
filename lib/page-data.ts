@@ -89,6 +89,14 @@ export type TasteRow = {
   placeIds: string[]
 }
 
+export type VenueIndexEntry = {
+  id: string
+  name: string
+  address: string
+  postcode: string
+  regionId: string | null
+}
+
 export type VenueMatch = {
   id: string
   name: string
@@ -184,6 +192,10 @@ export function readPlacePostcodes(): Record<string, string[]> {
 
 export function readVenueMatch(): VenueMatch[] {
   return readJson("venue-match.json")
+}
+
+export function readVenueIndex(): VenueIndexEntry[] {
+  return readJson("venue-index.json")
 }
 
 const venueMatchByIdCache = new Map<string, VenueMatch>()

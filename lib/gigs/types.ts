@@ -1,4 +1,4 @@
-export type GigProviderId = "skiddle" | "ticketmaster"
+export type GigProviderId = "skiddle" | "ticketmaster" | "bandsintown"
 
 export type Gig = {
   id: string
@@ -58,6 +58,14 @@ export type GigDeps = {
   paceMs?: number
   /** Shared counter. Each HTTP call spends one. Omitted means unlimited. */
   requests?: { current: number }
+  /** Artist names for a catalogue sweep. Tests pass a short list. */
+  artistNames?: string[]
+}
+
+export type GigCitySearch = {
+  from: string
+  to: string
+  now: Date
 }
 
 export type GigProvider = {
@@ -65,6 +73,8 @@ export type GigProvider = {
   label: string
   configured(env?: NodeJS.ProcessEnv): boolean
   search(query: GigSearch, deps?: GigDeps): Promise<Gig[]>
+  /** One city-wide pull. Used instead of searching every tile. */
+  searchCity?(query: GigCitySearch, deps?: GigDeps): Promise<Gig[]>
 }
 
 export type GigSelection =

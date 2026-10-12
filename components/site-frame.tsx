@@ -32,6 +32,11 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
             <Link href="/venues" className="text-info underline-offset-4 hover:text-link-hover hover:underline">
               Venues
             </Link>
+            {process.env.GOOGLE_PLACES_API_KEY?.trim() ? (
+              <Link href="/top-50" className="text-info underline-offset-4 hover:text-link-hover hover:underline">
+                Top 50
+              </Link>
+            ) : null}
             <Link href="/#regions" className="text-info underline-offset-4 hover:text-link-hover hover:underline">
               Regions
             </Link>
@@ -54,9 +59,9 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
           </Suspense>
           <p className="text-sm text-muted-foreground">
             Locality comes from MusicBrainz and Wikidata, not from Spotify. A Spotify match is a name match. Borough
-            links stay off the postcode counts. Gig listings come from Skiddle and Ticketmaster when those keys are set,
-            and stay empty when they are not. A Spotify login can rank For you from that session. Taste is not stored
-            on the server.
+            links stay off the postcode counts. Gig listings come from Skiddle, Ticketmaster, and Bandsintown when those
+            keys are set, and stay empty when they are not. A Spotify login can rank For you from that session. Taste
+            is not stored on the server.
           </p>
         </div>
       </footer>

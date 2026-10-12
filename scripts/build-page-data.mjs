@@ -234,6 +234,16 @@ write("artist-index.json", artists.map((artist) => ({ slug: slugFor(artist), nam
 write("taste-index.json", tasteIndex)
 write("place-postcodes.json", Object.fromEntries(places.map((place) => [place.id, place.postcodes ?? []])))
 write("venue-match.json", venueMatch)
+write(
+  "venue-index.json",
+  venues.map((venue) => ({
+    id: venue.id,
+    name: venue.name,
+    address: venue.address,
+    postcode: venue.postcode,
+    regionId: regionFor(venue.postcodeDistrict || venue.postcode)?.id ?? null,
+  })),
+)
 write("newsletter.json", { postcodes: postcodeSet, areas: newsletterAreas, placePostcodes: placePostcodeMap })
 
 for (const [id] of REGION_AREAS) {

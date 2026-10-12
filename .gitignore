@@ -20,3 +20,4 @@ public/maplibre-gl-worker.mjs
 data/run.json
 data/.mb-cache/
 data/pages/
+data/.venue-ratings.json
